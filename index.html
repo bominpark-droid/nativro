@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#10241d">
+<title>Nativro</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
+<style>
+:root{
+  --bg:#10241d; --card:#1a3329; --card2:#214032; --line:#2e5240;
+  --ink:#eaf4ee; --soft:#a8c4b4; --mut:#6e8f7d;
+  --acc:#4ade80; --acc2:#22c55e; --gold:#fbbf24; --red:#f87171; --blue:#7dd3fc;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:16px; line-height:1.6; word-break:keep-all;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+.screen{display:none; min-height:100vh; flex-direction:column; max-width:520px; margin:0 auto; padding:18px 16px 28px}
+.screen.on{display:flex}
+h1{font-size:30px; letter-spacing:-.5px}
+h2{font-size:20px; margin-bottom:10px}
+.sub{color:var(--soft); font-size:14px}
+.btn{
+  display:block; width:100%; border:none; border-radius:16px; padding:15px;
+  font-size:17px; font-weight:700; font-family:inherit; color:#08150f;
+  background:var(--acc); cursor:pointer;
+}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line)}
+.btn.small{width:auto; padding:9px 16px; font-size:14px; border-radius:12px; display:inline-block}
+input{
+  width:100%; padding:14px; border-radius:14px; border:1px solid var(--line);
+  background:var(--card); color:var(--ink); font-size:17px; font-family:inherit;
+}
+.card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; margin-bottom:12px}
+.row{display:flex; gap:10px; align-items:center}
+.grow{flex:1}
+.center{text-align:center}
+.gap{height:14px}
+.toast{
+  position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+  background:#000c; color:#fff; padding:10px 18px; border-radius:99px;
+  font-size:14px; z-index:99; display:none; max-width:88vw; text-align:center;
+}
+/* 홈 인물 카드 */
+.pcard{display:flex; gap:12px; align-items:center; cursor:pointer}
+.pcard .face{font-size:34px; width:54px; height:54px; display:flex; align-items:center; justify-content:center; background:var(--card2); border-radius:16px}
+.pcard b{font-size:17px}
+.pcard .desc{font-size:13px; color:var(--soft)}
+.statbar{display:flex; gap:8px; margin-bottom:14px}
+.stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; text-align:center}
+.stat .v{font-size:20px; font-weight:800}
+.stat .k{font-size:11px; color:var(--mut)}
+/* 대화 화면 */
+#chatbox{flex:1; overflow-y:auto; padding:6px 2px; -webkit-overflow-scrolling:touch}
+.bb{max-width:82%; padding:10px 14px; border-radius:16px; margin-bottom:10px; font-size:15.5px; line-height:1.55}
+.bb.them{background:var(--card2); border-bottom-left-radius:5px}
+.bb.me{background:#265c41; margin-left:auto; border-bottom-right-radius:5px}
+.bb .who{font-size:11px; color:var(--blue); font-weight:700; margin-bottom:2px}
+.bb.me .who{color:#9ff0c0}
+.bb.thinking{color:var(--mut); font-style:italic}
+/* 팝업 카드 */
+#pops{display:flex; flex-direction:column; gap:8px; margin:4px 0}
+.pop{
+  background:#0e2a3d; border:1px solid #2c6a94; border-radius:14px; padding:11px 13px;
+  font-size:14.5px; cursor:pointer; animation:rise .25s ease;
+}
+@keyframes rise{from{opacity:0; transform:translateY(8px)}to{opacity:1}}
+.pop .tag{font-size:10.5px; color:var(--blue); letter-spacing:.08em; display:flex; justify-content:space-between}
+.pop .x{padding:0 4px; color:var(--mut); font-size:15px}
+.pop .sent{font-weight:600; margin-top:2px}
+.pop .note{display:none; margin-top:6px; font-size:13px; color:var(--soft)}
+.pop.open{background:#123a54}
+.pop.open .note{display:block}
+/* 말하기 단추 */
+#talkctrl{padding-top:10px}
+#micbtn{
+  width:100%; border:none; border-radius:20px; padding:20px; font-size:19px; font-weight:800;
+  font-family:inherit; background:var(--acc); color:#08150f; cursor:pointer;
+}
+#micbtn.rec{background:var(--red); color:#fff; animation:pulse 1.2s infinite}
+#micbtn.wait{background:var(--card2); color:var(--mut)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.75}}
+.talkfoot{display:flex; justify-content:space-between; margin-top:10px; font-size:14px; color:var(--mut)}
+.talkfoot span{cursor:pointer; padding:4px}
+/* 정리 화면 */
+.praise{background:#1c3d2b; border:1px solid #2f6647; border-radius:14px; padding:12px 14px; margin-bottom:8px; font-size:15px}
+.corr{border-bottom:1px solid var(--line); padding:10px 2px; font-size:14.5px}
+.corr .o{color:var(--red); text-decoration:line-through}
+.corr .f{color:var(--acc); font-weight:700}
+.corr .n{font-size:13px; color:var(--soft)}
+.gain{font-size:26px; font-weight:800; text-align:center; padding:10px}
+/* 상점 */
+.item{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px}
+.item .e{font-size:26px}
+.item .p{color:var(--gold); font-weight:800; white-space:nowrap}
+.item.lock{opacity:.45}
+.backlink{color:var(--soft); font-size:15px; cursor:pointer; padding:6px 0; display:inline-block}
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div class="screen" id="scr-auth">
+  <div class="gap"></div>
+  <h1 class="center">Nativro 🎙️</h1>
+  <p class="center sub">네이티브로 — 원어민 쪽으로</p>
+  <div class="gap"></div>
+  <div class="card">
+    <p class="sub">아이디</p>
+    <input id="a-uid" autocapitalize="none" placeholder="예: jin">
+    <div class="gap"></div>
+    <p class="sub">비밀번호 (숫자 4자리 이상)</p>
+    <input id="a-pin" type="password" inputmode="numeric" placeholder="****">
+    <div class="gap"></div>
+    <button class="btn" onclick="doLogin()">들어가기</button>
+    <div class="gap"></div>
+    <button class="btn ghost" onclick="doSignup()">처음이에요 (계정 만들기)</button>
+  </div>
+  <p class="center sub" id="a-msg"></p>
+</div>
+
+<!-- 홈 -->
+<div class="screen" id="scr-home">
+  <div class="row">
+    <h1 class="grow">Nativro</h1>
+    <span class="sub" onclick="logout()">나가기</span>
+  </div>
+  <div class="gap"></div>
+  <div class="statbar">
+    <div class="stat"><div class="v" id="h-level">–</div><div class="k">레벨</div></div>
+    <div class="stat"><div class="v" id="h-xp">–</div><div class="k">XP</div></div>
+    <div class="stat"><div class="v" id="h-dia">–</div><div class="k">💎 보유</div></div>
+  </div>
+  <div class="card" id="h-open" style="display:none">
+    <p class="sub">이어서 하고 싶은 이야기</p>
+    <p id="h-open-t" style="font-size:15px"></p>
+  </div>
+  <h2>오늘은 누구랑?</h2>
+  <div class="card pcard" onclick="startTalk('solo','rachel')">
+    <div class="face">👩🏼</div>
+    <div class="grow"><b>Rachel</b><div class="desc">서울 사는 미국인 엄마 · 제일 편한 친구</div></div>
+  </div>
+  <div class="card pcard" onclick="startTalk('solo','kim')">
+    <div class="face">👩🏻‍🏫</div>
+    <div class="grow"><b>Kim</b><div class="desc">초등학교 원어민 교사 · 제일 많이 가르쳐 줌</div></div>
+  </div>
+  <div class="card pcard" onclick="startTalk('solo','yolanda')">
+    <div class="face">👩🏽‍⚕️</div>
+    <div class="grow"><b>Dr. Yolanda</b><div class="desc">따뜻한 상담사 선생님 · 천천히 편안하게</div></div>
+  </div>
+  <div class="card pcard" onclick="startTalk('group','rachel')">
+    <div class="face">👭</div>
+    <div class="grow"><b>셋이서 수다</b><div class="desc">Rachel + Kim 과 함께 · 끼어들기 연습</div></div>
+  </div>
+  <div class="gap"></div>
+  <div class="row">
+    <button class="btn ghost grow" onclick="show('shop'); renderShop()">💎 상점</button>
+    <button class="btn ghost grow" onclick="show('log'); renderLog()">📖 기록</button>
+  </div>
+</div>
+
+<!-- 대화 -->
+<div class="screen" id="scr-talk">
+  <div class="row">
+    <span class="backlink" onclick="askEnd()">← 끝내기</span>
+    <b class="grow center" id="t-title"></b>
+    <span style="width:52px"></span>
+  </div>
+  <div id="chatbox"></div>
+  <div id="pops"></div>
+  <div id="talkctrl">
+    <button id="micbtn" onclick="micTap()">🎤 눌러서 말하기</button>
+    <div class="talkfoot">
+      <span onclick="typeInstead()">⌨️ 타자로 입력</span>
+      <span id="t-status"></span>
+      <span onclick="askEnd()">다 했어요 ✅</span>
+    </div>
+  </div>
+</div>
+
+<!-- 정리 -->
+<div class="screen" id="scr-sum">
+  <h1>오늘의 정리 ✨</h1>
+  <div class="gap"></div>
+  <div id="s-body"><p class="sub center">정리하는 중...</p></div>
+  <div class="gap"></div>
+  <button class="btn" onclick="goHome()">홈으로</button>
+</div>
+
+<!-- 상점 -->
+<div class="screen" id="scr-shop">
+  <div class="row">
+    <span class="backlink" onclick="goHome()">← 홈</span>
+    <b class="grow center">💎 상점</b>
+    <b id="sh-bal" style="color:var(--gold)"></b>
+  </div>
+  <div class="gap"></div>
+  <div id="sh-list"></div>
+</div>
+
+<!-- 기록 -->
+<div class="screen" id="scr-log">
+  <div class="row">
+    <span class="backlink" onclick="goHome()">← 홈</span>
+    <b class="grow center">📖 기록</b>
+    <span style="width:40px"></span>
+  </div>
+  <div class="gap"></div>
+  <div id="log-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ================================================================
+   Nativro 화면 코드 v0.1
+   SERVER_URL: Apps Script를 "배포"하면 나오는 웹 앱 URL을 붙여넣는 곳
+   ================================================================ */
+const SERVER_URL = "https://script.google.com/macros/s/AKfycbyFXL42fwVnhV_FK_-p5czkaEbPkuKpPSQY93sjZAJHXTHp-ncXpH59-HWpFxPg69SQlw/exec";
+
+/* ── 공통 상태 ── */
+let S = null;                 // {uid, token}
+let T = null;                 // 지금 대화 {mode, persona, hist[], sid, learned[], shown[], avoid[]}
+let busy = false;
+
+function $(id){ return document.getElementById(id); }
+function show(name){
+  document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("on"); });
+  $("scr-" + name).classList.add("on");
+}
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(t._tm); t._tm = setTimeout(function(){ t.style.display = "none"; }, 2600);
+}
+function esc(s){
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ── 서버 부르기 (영어 편의점과 같은 방식) ── */
+async function api(action, payload){
+  const body = Object.assign({ action: action }, payload || {});
+  if (S) { body.uid = S.uid; body.token = S.token; }
+  const res = await fetch(SERVER_URL, {
+    method: "POST", redirect: "follow",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  });
+  const j = await res.json();
+  if (j && j.err === "auth") { logout(); throw new Error("다시 로그인해 주세요"); }
+  return j;
+}
+
+/* ── 로그인 ── */
+function saveAuth(){ localStorage.setItem("nativro-auth", JSON.stringify(S)); }
+function logout(){ S = null; localStorage.removeItem("nativro-auth"); show("auth"); }
+async function doLogin(){
+  const uid = $("a-uid").value.trim(), pin = $("a-pin").value.trim();
+  if (!uid || !pin) return toast("아이디와 비밀번호를 넣어주세요");
+  $("a-msg").textContent = "확인 중...";
+  try {
+    const r = await api("login", { uid: uid, pin: pin });
+    if (r.err) { $("a-msg").textContent = "아이디나 비밀번호가 달라요"; return; }
+    S = { uid: r.uid, token: r.token }; saveAuth(); goHome();
+  } catch(e){ $("a-msg").textContent = "서버 연결 실패: " + e.message; }
+}
+async function doSignup(){
+  const uid = $("a-uid").value.trim(), pin = $("a-pin").value.trim();
+  if (!uid || pin.length < 4) return toast("아이디와 4자리 이상 비밀번호를 넣어주세요");
+  $("a-msg").textContent = "만드는 중...";
+  try {
+    const r = await api("signup", { uid: uid, pin: pin });
+    if (r.err === "exists") { $("a-msg").textContent = "이미 있는 아이디예요 — 들어가기를 눌러보세요"; return; }
+    if (r.err === "full") { $("a-msg").textContent = "계정은 2개까지 만들 수 있어요 (가족용)"; return; }
+    if (r.err) { $("a-msg").textContent = "실패: " + r.err; return; }
+    S = { uid: r.uid, token: r.token }; saveAuth(); goHome();
+  } catch(e){ $("a-msg").textContent = "서버 연결 실패: " + e.message; }
+}
+
+/* ── 홈 ── */
+let HOME = null;   // load 결과 저장
+async function goHome(){
+  show("home");
+  try {
+    HOME = await api("load", {});
+    if (HOME.err) { const msg = HOME.err; HOME = null; return toast("불러오기 실패: " + msg); }
+    $("h-level").textContent = HOME.level;
+    $("h-xp").textContent = HOME.xp;
+    $("h-dia").textContent = HOME.diaBal;
+    if (HOME.unfinished) {
+      $("h-open").style.display = "block";
+      $("h-open-t").textContent = "“" + HOME.unfinished + "”";
+    } else $("h-open").style.display = "none";
+  } catch(e){ toast("서버 연결을 확인해 주세요"); }
+}
+
+/* ── 상점 ── */
+async function ensureHome(){
+  if (HOME && HOME.shop) return true;
+  try { HOME = await api("load", {}); } catch(e){ HOME = null; }
+  if (!HOME || HOME.err || !HOME.shop) { HOME = null; toast("불러오기 실패 — 잠시 뒤 다시 열어 보세요"); return false; }
+  return true;
+}
+async function renderShop(){
+  if (!(await ensureHome())) return;
+  $("sh-bal").textContent = "💎 " + HOME.diaBal;
+  const open = HOME.diaTotal >= 250;
+  let h = "";
+  HOME.shop.forEach(function(it, i){
+    if (it.h) return;
+    h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow">' + esc(it.n) +
+         '</span><span class="p">\ud83d\udc8e ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
+  });
+  h += '<div class="gap"></div><h2>\ud83d\udd12 숨겨진 상점</h2>';
+  if (open) {
+    h += '<p class="sub">축하해요! 지금까지 \ud83d\udc8e ' + HOME.diaTotal + '개를 모아서 열렸어요.</p>';
+    HOME.shop.forEach(function(it, i){
+      if (!it.h) return;
+      h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow">' + esc(it.n) +
+           '</span><span class="p">\ud83d\udc8e ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
+    });
+  } else {
+    h += '<p class="sub">지금까지 모은 \ud83d\udc8e ' + HOME.diaTotal + ' / 250 — 다 모으면 특별한 상품이 열려요!</p>';
+    HOME.shop.forEach(function(it){
+      if (!it.h) return;
+      h += '<div class="item lock"><span class="e">\u2753</span><span class="grow">???</span><span class="p">\ud83d\udc8e ' + it.p + '</span></div>';
+    });
+  }
+  $("sh-list").innerHTML = h;
+  $("sh-list").querySelectorAll("[data-buy]").forEach(function(b){
+    b.onclick = function(){
+      const it = HOME.shop[Number(b.getAttribute("data-buy"))];
+      if (it) buyItem(it.n, it.p);
+    };
+  });
+}
+async function buyItem(name, price){
+  if (!confirm("「" + name + "」 을(를) \ud83d\udc8e " + price + "에 살까요?")) return;
+  try {
+    const r = await api("buy", { name: name, price: price });
+    if (r.err === "부족") return toast("다이아가 조금 모자라요!");
+    if (r.err) return toast("실패: " + r.err);
+    HOME.diaBal = r.diaBal;
+    toast("\ud83c\udf89 샀어요! 남편에게 청구하세요");
+    renderShop();
+  } catch(e){ toast("연결 실패 — 다시 시도해 주세요"); }
+}
+
+/* ── 기록 ── */
+async function renderLog(){
+  if (!(await ensureHome())) return;
+  let h = "<h2>최근 대화</h2>";
+  if (!HOME.journal.length) h += '<p class="sub">아직 기록이 없어요</p>';
+  HOME.journal.slice().reverse().forEach(function(j){
+    h += '<div class="card"><p class="sub">' + esc(j.d) + '</p><p style="font-size:15px">' + esc(j.sum) + '</p>' +
+         (j.open ? '<p class="sub">이어서: ' + esc(j.open) + '</p>' : '') + '</div>';
+  });
+  h += '<div class="gap"></div><h2>최근 배운 것</h2>';
+  if (!HOME.corr.length) h += '<p class="sub">아직 없어요</p>';
+  HOME.corr.slice().reverse().forEach(function(c){
+    h += '<div class="corr"><span class="o">' + esc(c.o) + '</span> → <span class="f">' + esc(c.f) + '</span>' +
+         (c.note ? '<div class="n">' + esc(c.note) + '</div>' : '') + '</div>';
+  });
+  $("log-body").innerHTML = h;
+}
+
+/* ================================================================
+   대화 — 녹음(마이크→WAV) · 재생 · 팝업 · 침묵 처리
+   ================================================================ */
+const PNAME = { rachel: "Rachel", kim: "Kim", yolanda: "Dr. Yolanda" };
+
+/* ── 소리 재생 (아이폰은 첫 터치로 잠금 해제 필요) ── */
+let player = new Audio();
+let audioUnlocked = false;
+function unlockAudio(){
+  if (audioUnlocked) return;
+  player.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+  player.play().catch(function(){});
+  audioUnlocked = true;
+}
+let playerDone = null;
+function settleAudio(){
+  if (playerDone) { const d = playerDone; playerDone = null; d(); }
+}
+function stopAudio(){ try { player.pause(); } catch(e){} settleAudio(); }
+function playB64(b64){
+  return new Promise(function(done){
+    if (!b64) return done();
+    settleAudio();                 /* 이전 재생 기다림을 즉시 풀어줌 */
+    playerDone = done;
+    player.src = "data:audio/mp3;base64," + b64;
+    player.onended = settleAudio;
+    player.onerror = function(){ settleAudio(); };
+    player.play().catch(function(){ settleAudio(); });
+  });
+}
+
+/* ── 화면 꺼짐 방지 ── */
+let wakeLock = null;
+async function keepAwake(){
+  try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch(e){}
+}
+function releaseWake(){ try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch(e){} }
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState === "visible" && T) keepAwake();
+});
+
+/* ── 녹음: 마이크 → 16kHz WAV (아이폰 사파리에서도 동작) ── */
+let AC = null, mediaStream = null, srcNode = null, procNode = null, zeroGain = null;
+let recBuf = [], recording = false, recTimer = null, recStart = 0;
+
+async function recBegin(){
+  stopAudio();
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  await AC.resume();
+  mediaStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true }
+  });
+  srcNode = AC.createMediaStreamSource(mediaStream);
+  procNode = AC.createScriptProcessor(4096, 1, 1);
+  zeroGain = AC.createGain(); zeroGain.gain.value = 0;
+  recBuf = [];
+  procNode.onaudioprocess = function(e){
+    if (recording) recBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  };
+  srcNode.connect(procNode);
+  procNode.connect(zeroGain);
+  zeroGain.connect(AC.destination);
+  recording = true;
+  recStart = Date.now();
+  recTimer = setInterval(function(){
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    $("t-status").textContent = "🔴 " + s + "초";
+    if (s >= 55 && recording && !busy) micTap();   // 받아쓰기 한도(1분) 전에 자동 멈춤
+  }, 500);
+}
+function micCleanup(){
+  recording = false;
+  clearInterval(recTimer);
+  const stEl = $("t-status"); if (stEl) stEl.textContent = "";
+  try { if (procNode) { procNode.onaudioprocess = null; procNode.disconnect(); } } catch(e){}
+  try { if (srcNode) srcNode.disconnect(); } catch(e){}
+  try { if (zeroGain) zeroGain.disconnect(); } catch(e){}
+  if (mediaStream) { mediaStream.getTracks().forEach(function(t){ t.stop(); }); mediaStream = null; }
+}
+function recEnd(){
+  micCleanup();
+  let len = 0;
+  recBuf.forEach(function(b){ len += b.length; });
+  const all = new Float32Array(len);
+  let off = 0;
+  recBuf.forEach(function(b){ all.set(b, off); off += b.length; });
+  recBuf = [];
+  return encodeWav16k(all, AC.sampleRate);
+}
+function encodeWav16k(f32, inRate){
+  const ratio = inRate / 16000;
+  const outLen = Math.floor(f32.length / ratio);
+  const pcm = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(f32.length, Math.floor((i + 1) * ratio));
+    let sum = 0, c = 0;
+    for (let j = a; j < b; j++) { sum += f32[j]; c++; }
+    let v = c ? sum / c : 0;
+    v = Math.max(-1, Math.min(1, v));
+    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+  }
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const dv = new DataView(buf);
+  function wstr(o, s){ for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  wstr(0, "RIFF"); dv.setUint32(4, 36 + pcm.length * 2, true); wstr(8, "WAVE");
+  wstr(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, 16000, true); dv.setUint32(28, 32000, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  wstr(36, "data"); dv.setUint32(40, pcm.length * 2, true);
+  new Int16Array(buf, 44).set(pcm);
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+/* ── 대화 시작 ── */
+async function startTalk(mode, persona){
+  unlockAudio(); keepAwake();
+  stopAudio();
+  if (recording) micCleanup();
+  recBuf = [];
+  busy = false;
+  T = { mode: mode, persona: persona, hist: [], sid: String(Date.now()),
+        learned: [], shown: [], avoid: [], silences: 0 };
+  $("t-title").textContent = mode === "group" ? "Rachel + Kim 👭" : PNAME[persona];
+  $("chatbox").innerHTML = "";
+  $("pops").innerHTML = "";
+  setMic("idle");
+  show("talk");
+  await sendTurn("[SESSION_START]", false);
+}
+function bubble(who, text, me, thinking){
+  const d = document.createElement("div");
+  d.className = "bb " + (me ? "me" : "them") + (thinking ? " thinking" : "");
+  d.innerHTML = (who ? '<div class="who">' + esc(who) + '</div>' : '') + esc(text);
+  $("chatbox").appendChild(d);
+  $("chatbox").scrollTop = 999999;
+  return d;
+}
+function setMic(state){
+  const b = $("micbtn");
+  b.className = "";
+  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 눌러서 끝내기"; }
+  else if (state === "wait") { b.classList.add("wait"); b.textContent = "생각하는 중..."; }
+  else b.textContent = "🎤 눌러서 말하기";
+}
+
+/* ── 마이크 단추 ── */
+async function micTap(){
+  if (busy) return;
+  unlockAudio();
+  clearTimeout(silenceTm);
+  if (!recording) {
+    try { await recBegin(); setMic("rec"); }
+    catch(e){ toast("마이크를 허용해 주세요"); }
+    return;
+  }
+  setMic("wait"); busy = true;
+  try {
+    const wav = recEnd();
+    if (wav.length < 8000) { toast("너무 짧아요 — 다시 눌러 보세요"); setMic("idle"); busy = false; return; }
+    const st = await api("stt", { audio: wav });
+    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패" : "잘 안 들렸어요 — 한 번 더!"); setMic("idle"); busy = false; return; }
+    busy = false;
+    await sendTurn(st.text, true);
+  } catch(e){ toast("오류: " + e.message); setMic("idle"); busy = false; }
+}
+function typeInstead(){
+  if (busy || recording || !T) return;
+  const t = prompt("영어로 입력해 보세요:");
+  if (t && t.trim()) sendTurn(t.trim(), true);
+}
+
+/* ── 한 턴 보내기 ── */
+let silenceTm = null;
+async function sendTurn(text, isUser){
+  if (busy || !T) return;
+  const mySid = T.sid;              /* 응답이 늦게 와도 이 세션 것일 때만 적용 */
+  busy = true; setMic("wait");
+  clearTimeout(silenceTm);
+  if (isUser) { bubble("나", text, true); T.silences = 0; }
+  T.hist.push({ u: 1, t: text });
+  const think = bubble("", "...", false, true);
+  try {
+    const r = await api("chat", {
+      mode: T.mode, persona: T.persona, sid: T.sid,
+      history: T.hist, userText: isUser ? text : "",
+      avoid: T.avoid.slice(-10)
+    });
+    think.remove();
+    if (!T || T.sid !== mySid) return;          /* 세션이 바뀌었으면 버림 */
+    if (r.err) { toast("오류: " + r.err); busy = false; setMic("idle"); return; }
+    if (r.popup && r.popup.orig) showPop(r.popup);
+    const lines = r.lines || [];
+    lines.forEach(function(L){                   /* 글은 소리보다 먼저 전부 표시 */
+      T.hist.push({ s: L.speaker, t: L.text });
+      bubble(L.speaker, L.text, false);
+    });
+    busy = false; setMic("idle");
+    for (const L of lines) {
+      if (!T || T.sid !== mySid) return;
+      await playB64(L.audio);
+    }
+    if (T && T.sid === mySid) armSilence();
+  } catch(e){
+    think.remove();
+    if (!T || T.sid !== mySid) return;
+    toast("연결 오류: " + e.message);
+    busy = false; setMic("idle");
+  }
+}
+function armSilence(){
+  clearTimeout(silenceTm);
+  if (T && T.mode === "group" && T.silences < 2) {
+    silenceTm = setTimeout(function(){
+      if (!recording && !busy && T) { T.silences++; sendTurn("[SILENT]", false); }
+    }, 8000);
+  }
+}
+
+/* ── 팝업 카드 ── */
+function showPop(p){
+  T.shown.push({ orig: p.orig, better: p.better });
+  T.avoid.push(p.better);
+  const box = $("pops");
+  while (box.children.length >= 2) box.removeChild(box.firstChild);
+  const d = document.createElement("div");
+  d.className = "pop";
+  d.innerHTML = '<div class="tag"><span>💡 더 자연스럽게</span><span class="x">✕</span></div>' +
+                '<div class="sent">' + esc(p.better) + '</div>' +
+                '<div class="note">' + esc(p.note || "") + '</div>';
+  d.onclick = function(ev){
+    if (ev.target.classList.contains("x")) { d.remove(); return; }
+    if (d.classList.contains("open")) return;
+    d.classList.add("open");
+    T.learned.push(p);
+    T.shown = T.shown.filter(function(s){ return s.better !== p.better; });
+    toast("💎 +1 배웠어요! 이제 직접 말해 보세요");
+    api("tts", {
+      persona: T.mode === "group" ? "kim" : T.persona,
+      text: 'That works! But natives would usually say: "' + p.better + '". Try saying it!'
+    }).then(function(r){ if (r.audio) playB64(r.audio); });
+    setTimeout(function(){ d.remove(); }, 12000);
+  };
+  box.appendChild(d);
+}
+
+/* ── 끝내기 → 정리 ── */
+function leaveTalk(){
+  clearTimeout(silenceTm);
+  stopAudio();
+  if (recording) micCleanup();
+  recBuf = [];
+  busy = false;
+  releaseWake();
+}
+function askEnd(){
+  clearTimeout(silenceTm);
+  const spoke = T && T.hist.filter(function(h){ return h.u && h.t !== "[SESSION_START]" && h.t !== "[SILENT]"; }).length > 0;
+  if (!spoke) { leaveTalk(); T = null; goHome(); return; }
+  if (confirm("오늘 대화를 끝내고 정리를 볼까요?")) { leaveTalk(); finishTalk(); }
+  else armSilence();
+}
+async function finishTalk(){
+  show("sum");
+  $("s-body").innerHTML = '<p class="sub center">코치가 오늘 대화를 정리하는 중...</p>';
+  try {
+    const r = await api("summary", {
+      mode: T.mode, history: T.hist, learned: T.learned, shown: T.shown
+    });
+    if (r.err) { $("s-body").innerHTML = '<p class="sub">정리 실패: ' + esc(r.err) + '</p>'; return; }
+    let h = "";
+    (r.praise || []).forEach(function(p){ h += '<div class="praise">🌟 ' + esc(p) + '</div>'; });
+    h += '<div class="gain">+' + r.xpGain + ' XP · +' + r.diaGain + ' 💎' +
+         (r.weekBonus ? ' <span style="font-size:14px">(주 4일 보너스 +10 포함!)</span>' : '') + '</div>';
+    h += '<p class="center sub">레벨 ' + r.level + ' · 보유 💎 ' + r.diaBal + '</p><div class="gap"></div>';
+    if ((r.corrections || []).length) {
+      h += "<h2>오늘 배운 것</h2>";
+      r.corrections.forEach(function(c){
+        h += '<div class="corr"><span class="o">' + esc(c.orig) + '</span> → <span class="f">' + esc(c.fix) + '</span>' +
+             (c.note ? '<div class="n">' + esc(c.note) + '</div>' : '') + '</div>';
+      });
+    }
+    $("s-body").innerHTML = h;
+    T = null; HOME = null;
+  } catch(e){
+    $("s-body").innerHTML = '<p class="sub">연결 오류: ' + esc(e.message) + '</p>';
+  }
+}
+
+/* ── 시작 ── */
+(function boot(){
+  try {
+    const saved = localStorage.getItem("nativro-auth");
+    if (saved) { S = JSON.parse(saved); goHome(); return; }
+  } catch(e){}
+  show("auth");
+})();
+</script>
+</body>
+</html>
