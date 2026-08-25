@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#10241d">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FBF4EA">
 <title>Nativro</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
 <style>
 :root{
-  --bg:#10241d; --card:#1a3329; --card2:#214032; --line:#2e5240;
-  --ink:#eaf4ee; --soft:#a8c4b4; --mut:#6e8f7d;
-  --acc:#4ade80; --acc2:#22c55e; --gold:#fbbf24; --red:#f87171; --blue:#7dd3fc;
+  --bg:#FBF4EA; --card:#FFFFFF; --card2:#FFF7EC; --ink:#2E2622; --soft:#8A7B70;
+  --line:#F0E3D2; --orange:#F2802E; --orangeDk:#DF6E1E; --gold:#F4B63F;
+  --red:#E85D4A; --green:#58B368; --blue:#3D7EA6; --blueBg:#EAF4FB; --blueLine:#BCD9EA;
+  --sh:0 10px 28px -18px rgba(60,45,30,.45);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -22,143 +23,193 @@ body{
   font-size:16px; line-height:1.6; word-break:keep-all;
   padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
-.screen{display:none; min-height:100vh; flex-direction:column; max-width:520px; margin:0 auto; padding:18px 16px 28px}
+.screen{display:none; min-height:100vh; flex-direction:column; max-width:520px; margin:0 auto; padding:16px 16px 26px}
 .screen.on{display:flex}
-h1{font-size:30px; letter-spacing:-.5px}
-h2{font-size:20px; margin-bottom:10px}
+h1{font-size:28px; letter-spacing:-.5px; font-weight:800}
+h2{font-size:18px; margin:22px 0 10px; font-weight:800}
 .sub{color:var(--soft); font-size:14px}
-.btn{
-  display:block; width:100%; border:none; border-radius:16px; padding:15px;
-  font-size:17px; font-weight:700; font-family:inherit; color:#08150f;
-  background:var(--acc); cursor:pointer;
-}
-.btn:active{transform:scale(.98)}
-.btn.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line)}
-.btn.small{width:auto; padding:9px 16px; font-size:14px; border-radius:12px; display:inline-block}
-input{
-  width:100%; padding:14px; border-radius:14px; border:1px solid var(--line);
-  background:var(--card); color:var(--ink); font-size:17px; font-family:inherit;
-}
-.card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; margin-bottom:12px}
+.center{text-align:center}
 .row{display:flex; gap:10px; align-items:center}
 .grow{flex:1}
-.center{text-align:center}
-.gap{height:14px}
+.gap{height:12px}
+.linkish{color:var(--soft); font-size:15px; cursor:pointer; padding:6px}
+.charsvg{width:100%;height:100%;display:block}
+
+.btn{
+  display:block; width:100%; border:none; border-radius:18px; padding:15px;
+  font-size:16.5px; font-weight:800; font-family:inherit; color:#fff;
+  background:linear-gradient(180deg,var(--orange),var(--orangeDk)); cursor:pointer;
+  box-shadow:0 8px 18px -8px rgba(223,110,30,.55);
+}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--card); color:var(--ink); border:1.5px solid var(--line); box-shadow:var(--sh)}
+.btn.small{width:auto; padding:9px 16px; font-size:13.5px; border-radius:13px; display:inline-block; box-shadow:none}
+input{
+  width:100%; padding:14px; border-radius:15px; border:1.5px solid var(--line);
+  background:#FFFDF9; color:var(--ink); font-size:17px; font-family:inherit;
+}
+input:focus{outline:none; border-color:var(--orange)}
+.card{background:var(--card); border:1.5px solid var(--line); border-radius:22px; padding:16px; margin-bottom:12px; box-shadow:var(--sh)}
 .toast{
-  position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
-  background:#000c; color:#fff; padding:10px 18px; border-radius:99px;
+  position:fixed; left:50%; bottom:96px; transform:translateX(-50%);
+  background:#33291Fee; color:#fff; padding:11px 18px; border-radius:99px;
   font-size:14px; z-index:99; display:none; max-width:88vw; text-align:center;
 }
-/* 홈 인물 카드 */
-.pcard{display:flex; gap:12px; align-items:center; cursor:pointer}
-.pcard .face{font-size:34px; width:54px; height:54px; display:flex; align-items:center; justify-content:center; background:var(--card2); border-radius:16px}
-.pcard b{font-size:17px}
-.pcard .desc{font-size:13px; color:var(--soft)}
-.statbar{display:flex; gap:8px; margin-bottom:14px}
-.stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; text-align:center}
-.stat .v{font-size:20px; font-weight:800}
-.stat .k{font-size:11px; color:var(--mut)}
-/* 대화 화면 */
-#chatbox{flex:1; overflow-y:auto; padding:6px 2px; -webkit-overflow-scrolling:touch}
-.bb{max-width:82%; padding:10px 14px; border-radius:16px; margin-bottom:10px; font-size:15.5px; line-height:1.55}
-.bb.them{background:var(--card2); border-bottom-left-radius:5px}
-.bb.me{background:#265c41; margin-left:auto; border-bottom-right-radius:5px}
-.bb .who{font-size:11px; color:var(--blue); font-weight:700; margin-bottom:2px}
-.bb.me .who{color:#9ff0c0}
-.bb.thinking{color:var(--mut); font-style:italic}
+
+/* 로그인 */
+.authwrap{margin:auto 0; padding-top:26px}
+.avrow{display:flex; justify-content:center; margin-bottom:14px}
+.avrow span{width:74px; height:74px; border-radius:50%; overflow:hidden; border:3px solid #fff; box-shadow:var(--sh)}
+.avrow span+span{margin-left:-16px}
+
+/* 홈 */
+.hi{font-size:13.5px; color:var(--soft)}
+.hud{display:flex; gap:8px; margin:14px 0 4px}
+.chip{flex:1; background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:9px 6px; text-align:center; box-shadow:var(--sh)}
+.chip .e{font-size:17px; display:block}
+.chip b{font-size:18px; display:block; line-height:1.25}
+.chip small{font-size:10.5px; color:var(--soft)}
+.chip.gold b{color:#C98A12}
+.open{border-left:5px solid var(--orange)}
+.pcard{display:flex; gap:12px; align-items:center; cursor:pointer; background:var(--card); border:1.5px solid var(--line); border-radius:22px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--sh)}
+.pcard:active{transform:scale(.985)}
+.pcard b{font-size:16.5px}
+.pcard .desc{font-size:12.5px; color:var(--soft)}
+.pav{width:64px; height:64px; border-radius:50%; overflow:hidden; flex:none}
+.pav.duo{width:84px; display:flex}
+.pav.duo span{width:56px; height:56px; border-radius:50%; overflow:hidden; border:2.5px solid #fff; flex:none; align-self:center}
+.pav.duo span+span{margin-left:-26px}
+.chev{color:var(--soft); font-size:22px; font-weight:700}
+
+/* 대화 무대 */
+#stage{padding:6px 0 2px}
+.stagewrap{display:flex; justify-content:center; gap:18px}
+.actor{text-align:center; transition:transform .25s}
+.actor .avring{border-radius:50%; overflow:hidden; margin:0 auto; border:4px solid #fff; box-shadow:var(--sh); transition:box-shadow .25s}
+.actor.solo .avring{width:150px; height:150px}
+.actor.duo .avring{width:104px; height:104px}
+.actor .anm{font-size:13px; font-weight:800; margin-top:6px; color:var(--soft)}
+.actor.on{transform:scale(1.05)}
+.actor.on .avring{box-shadow:0 0 0 4px var(--orange), var(--sh)}
+.actor.on .anm{color:var(--orange)}
+.stagest{text-align:center; font-size:13px; color:var(--soft); padding:8px 0 4px; min-height:26px}
+
+/* 말풍선 */
+#scr-talk{height:100vh; height:100dvh; overflow:hidden}
+#chatbox{flex:1; min-height:0; overflow-y:auto; padding:4px 2px; -webkit-overflow-scrolling:touch}
+.bb{max-width:84%; padding:10px 14px; border-radius:18px; margin-bottom:9px; font-size:15px; line-height:1.55; box-shadow:var(--sh)}
+.bb.them{background:var(--card); border:1.5px solid var(--line); border-bottom-left-radius:6px}
+.bb.me{background:#FFE3CB; margin-left:auto; border-bottom-right-radius:6px}
+.bb .who{font-size:10.5px; color:var(--orange); font-weight:800; margin-bottom:2px; letter-spacing:.03em}
+.bb.thinking{color:var(--soft); font-style:italic; background:var(--card2)}
+
 /* 팝업 카드 */
 #pops{display:flex; flex-direction:column; gap:8px; margin:4px 0}
-.pop{
-  background:#0e2a3d; border:1px solid #2c6a94; border-radius:14px; padding:11px 13px;
-  font-size:14.5px; cursor:pointer; animation:rise .25s ease;
-}
+.pop{background:var(--blueBg); border:1.5px solid var(--blueLine); border-radius:16px; padding:11px 13px; font-size:14px; cursor:pointer; animation:rise .25s ease; box-shadow:var(--sh)}
 @keyframes rise{from{opacity:0; transform:translateY(8px)}to{opacity:1}}
-.pop .tag{font-size:10.5px; color:var(--blue); letter-spacing:.08em; display:flex; justify-content:space-between}
-.pop .x{padding:0 4px; color:var(--mut); font-size:15px}
-.pop .sent{font-weight:600; margin-top:2px}
-.pop .note{display:none; margin-top:6px; font-size:13px; color:var(--soft)}
-.pop.open{background:#123a54}
+.pop .tag{font-size:10px; color:var(--blue); letter-spacing:.1em; display:flex; justify-content:space-between; font-weight:800}
+.pop .x{padding:0 4px; font-size:15px}
+.pop .sent{font-weight:700; margin-top:2px}
+.pop .note{display:none; margin-top:6px; font-size:12.5px; color:#4A6A80}
+.pop.open{background:#DDEEfB}
 .pop.open .note{display:block}
-/* 말하기 단추 */
-#talkctrl{padding-top:10px}
+
+/* 마이크 */
+#talkctrl{padding-top:8px}
+#meter{display:none; justify-content:center; align-items:flex-end; gap:5px; height:34px; margin-bottom:8px}
+#meter i{width:7px; height:6px; border-radius:99px; background:var(--orange); transition:height .09s}
 #micbtn{
-  width:100%; border:none; border-radius:20px; padding:20px; font-size:19px; font-weight:800;
-  font-family:inherit; background:var(--acc); color:#08150f; cursor:pointer;
+  width:100%; border:none; border-radius:20px; padding:19px; font-size:18px; font-weight:800;
+  font-family:inherit; color:#fff; cursor:pointer;
+  background:linear-gradient(180deg,var(--orange),var(--orangeDk));
+  box-shadow:0 10px 22px -8px rgba(223,110,30,.6);
 }
-#micbtn.rec{background:var(--red); color:#fff; animation:pulse 1.2s infinite}
-#micbtn.wait{background:var(--card2); color:var(--mut)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.75}}
-.talkfoot{display:flex; justify-content:space-between; margin-top:10px; font-size:14px; color:var(--mut)}
+#micbtn.rec{background:linear-gradient(180deg,#EE6A55,#D74B36); animation:pulse 1.1s infinite}
+#micbtn.wait{background:#D9CDBD; color:#8A7B70; box-shadow:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}}
+.talkfoot{display:flex; justify-content:space-between; margin-top:9px; font-size:13.5px; color:var(--soft)}
 .talkfoot span{cursor:pointer; padding:4px}
-/* 정리 화면 */
-.praise{background:#1c3d2b; border:1px solid #2f6647; border-radius:14px; padding:12px 14px; margin-bottom:8px; font-size:15px}
-.corr{border-bottom:1px solid var(--line); padding:10px 2px; font-size:14.5px}
+
+/* 정리 */
+.praise{background:#EAF6EC; border:1.5px solid #BFE3C6; border-radius:16px; padding:12px 14px; margin-bottom:8px; font-size:14.5px; box-shadow:var(--sh)}
+.gainbox{display:flex; gap:8px; margin:10px 0}
+.gain{flex:1; background:var(--card); border:1.5px solid var(--line); border-radius:18px; text-align:center; padding:12px 6px; box-shadow:var(--sh)}
+.gain b{font-size:21px; display:block}
+.gain small{font-size:11px; color:var(--soft)}
+.lvlbar{height:10px; background:#F0E4D2; border-radius:99px; overflow:hidden; margin:6px 0 2px}
+.lvlbar i{display:block; height:100%; background:linear-gradient(90deg,var(--gold),var(--orange)); border-radius:99px}
+.corr{border-bottom:1.5px solid var(--line); padding:10px 2px; font-size:14px}
 .corr .o{color:var(--red); text-decoration:line-through}
-.corr .f{color:var(--acc); font-weight:700}
-.corr .n{font-size:13px; color:var(--soft)}
-.gain{font-size:26px; font-weight:800; text-align:center; padding:10px}
+.corr .f{color:var(--green); font-weight:800}
+.corr .n{font-size:12.5px; color:var(--soft)}
+
 /* 상점 */
-.item{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px}
-.item .e{font-size:26px}
-.item .p{color:var(--gold); font-weight:800; white-space:nowrap}
-.item.lock{opacity:.45}
-.backlink{color:var(--soft); font-size:15px; cursor:pointer; padding:6px 0; display:inline-block}
+.item{display:flex; align-items:center; gap:12px; background:var(--card); border:1.5px solid var(--line); border-radius:18px; padding:11px 14px; margin-bottom:8px; box-shadow:var(--sh)}
+.item .e{font-size:24px; width:44px; height:44px; background:var(--card2); border-radius:14px; display:flex; align-items:center; justify-content:center; flex:none}
+.item .nm{font-size:14.5px; font-weight:600}
+.item .p{color:#C98A12; font-weight:800; white-space:nowrap; font-size:14px}
+.item.lock{opacity:.5}
 </style>
 </head>
 <body>
 
 <!-- 로그인 -->
 <div class="screen" id="scr-auth">
-  <div class="gap"></div>
-  <h1 class="center">Nativro 🎙️</h1>
-  <p class="center sub">네이티브로 — 원어민 쪽으로</p>
-  <div class="gap"></div>
-  <div class="card">
-    <p class="sub">아이디</p>
-    <input id="a-uid" autocapitalize="none" placeholder="예: jin">
+  <div class="authwrap">
+    <div class="avrow" id="auth-avs"></div>
+    <h1 class="center">Nativro</h1>
+    <p class="center sub">원어민 쪽으로, 매일 조금씩 🎙️</p>
     <div class="gap"></div>
-    <p class="sub">비밀번호 (숫자 4자리 이상)</p>
-    <input id="a-pin" type="password" inputmode="numeric" placeholder="****">
-    <div class="gap"></div>
-    <button class="btn" onclick="doLogin()">들어가기</button>
-    <div class="gap"></div>
-    <button class="btn ghost" onclick="doSignup()">처음이에요 (계정 만들기)</button>
+    <div class="card">
+      <p class="sub">아이디</p>
+      <input id="a-uid" autocapitalize="none" placeholder="예: jin">
+      <div class="gap"></div>
+      <p class="sub">비밀번호 (숫자 4자리 이상)</p>
+      <input id="a-pin" type="password" inputmode="numeric" placeholder="****">
+      <div class="gap"></div>
+      <button class="btn" onclick="doLogin()">들어가기</button>
+      <div class="gap"></div>
+      <button class="btn ghost" onclick="doSignup()">처음이에요 (계정 만들기)</button>
+    </div>
+    <p class="center sub" id="a-msg"></p>
   </div>
-  <p class="center sub" id="a-msg"></p>
 </div>
 
 <!-- 홈 -->
 <div class="screen" id="scr-home">
   <div class="row">
-    <h1 class="grow">Nativro</h1>
-    <span class="sub" onclick="logout()">나가기</span>
+    <div class="grow"><div class="hi">안녕하세요 👋</div><h1>Nativro</h1></div>
+    <span class="linkish" onclick="logout()">나가기</span>
   </div>
-  <div class="gap"></div>
-  <div class="statbar">
-    <div class="stat"><div class="v" id="h-level">–</div><div class="k">레벨</div></div>
-    <div class="stat"><div class="v" id="h-xp">–</div><div class="k">XP</div></div>
-    <div class="stat"><div class="v" id="h-dia">–</div><div class="k">💎 보유</div></div>
+  <div class="hud">
+    <div class="chip"><span class="e">🏆</span><b id="h-level">–</b><small>레벨</small></div>
+    <div class="chip"><span class="e">⭐</span><b id="h-xp">–</b><small>XP</small></div>
+    <div class="chip gold"><span class="e">💎</span><b id="h-dia">–</b><small>보유</small></div>
   </div>
-  <div class="card" id="h-open" style="display:none">
-    <p class="sub">이어서 하고 싶은 이야기</p>
-    <p id="h-open-t" style="font-size:15px"></p>
+  <div class="card open" id="h-open" style="display:none">
+    <p class="sub">이어서 하고 싶은 이야기 💬</p>
+    <p id="h-open-t" style="font-size:14.5px; font-weight:600"></p>
   </div>
-  <h2>오늘은 누구랑?</h2>
-  <div class="card pcard" onclick="startTalk('solo','rachel')">
-    <div class="face">👩🏼</div>
+  <h2>오늘은 누구랑 얘기할까요?</h2>
+  <div class="pcard" onclick="startTalk('solo','rachel')">
+    <div class="pav" id="hv-rachel"></div>
     <div class="grow"><b>Rachel</b><div class="desc">서울 사는 미국인 엄마 · 제일 편한 친구</div></div>
+    <span class="chev">›</span>
   </div>
-  <div class="card pcard" onclick="startTalk('solo','kim')">
-    <div class="face">👩🏻‍🏫</div>
+  <div class="pcard" onclick="startTalk('solo','kim')">
+    <div class="pav" id="hv-kim"></div>
     <div class="grow"><b>Kim</b><div class="desc">초등학교 원어민 교사 · 제일 많이 가르쳐 줌</div></div>
+    <span class="chev">›</span>
   </div>
-  <div class="card pcard" onclick="startTalk('solo','yolanda')">
-    <div class="face">👩🏽‍⚕️</div>
+  <div class="pcard" onclick="startTalk('solo','yolanda')">
+    <div class="pav" id="hv-yolanda"></div>
     <div class="grow"><b>Dr. Yolanda</b><div class="desc">따뜻한 상담사 선생님 · 천천히 편안하게</div></div>
+    <span class="chev">›</span>
   </div>
-  <div class="card pcard" onclick="startTalk('group','rachel')">
-    <div class="face">👭</div>
+  <div class="pcard" onclick="startTalk('group','rachel')">
+    <div class="pav duo"><span id="hv-g1"></span><span id="hv-g2"></span></div>
     <div class="grow"><b>셋이서 수다</b><div class="desc">Rachel + Kim 과 함께 · 끼어들기 연습</div></div>
+    <span class="chev">›</span>
   </div>
   <div class="gap"></div>
   <div class="row">
@@ -170,16 +221,18 @@ input{
 <!-- 대화 -->
 <div class="screen" id="scr-talk">
   <div class="row">
-    <span class="backlink" onclick="askEnd()">← 끝내기</span>
+    <span class="linkish" onclick="askEnd()">←</span>
     <b class="grow center" id="t-title"></b>
-    <span style="width:52px"></span>
+    <span class="linkish" onclick="askEnd()">끝 ✅</span>
   </div>
+  <div id="stage"></div>
   <div id="chatbox"></div>
   <div id="pops"></div>
   <div id="talkctrl">
+    <div id="meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button id="micbtn" onclick="micTap()">🎤 눌러서 말하기</button>
     <div class="talkfoot">
-      <span onclick="typeInstead()">⌨️ 타자로 입력</span>
+      <span onclick="typeInstead()">⌨️ 타자로</span>
       <span id="t-status"></span>
       <span onclick="askEnd()">다 했어요 ✅</span>
     </div>
@@ -188,9 +241,9 @@ input{
 
 <!-- 정리 -->
 <div class="screen" id="scr-sum">
-  <h1>오늘의 정리 ✨</h1>
+  <h1>🏆 오늘의 정리</h1>
   <div class="gap"></div>
-  <div id="s-body"><p class="sub center">정리하는 중...</p></div>
+  <div id="s-body"><p class="sub center">코치가 정리하는 중...</p></div>
   <div class="gap"></div>
   <button class="btn" onclick="goHome()">홈으로</button>
 </div>
@@ -198,9 +251,9 @@ input{
 <!-- 상점 -->
 <div class="screen" id="scr-shop">
   <div class="row">
-    <span class="backlink" onclick="goHome()">← 홈</span>
+    <span class="linkish" onclick="goHome()">← 홈</span>
     <b class="grow center">💎 상점</b>
-    <b id="sh-bal" style="color:var(--gold)"></b>
+    <b id="sh-bal" style="color:#C98A12"></b>
   </div>
   <div class="gap"></div>
   <div id="sh-list"></div>
@@ -209,25 +262,180 @@ input{
 <!-- 기록 -->
 <div class="screen" id="scr-log">
   <div class="row">
-    <span class="backlink" onclick="goHome()">← 홈</span>
+    <span class="linkish" onclick="goHome()">← 홈</span>
     <b class="grow center">📖 기록</b>
-    <span style="width:40px"></span>
+    <span style="width:44px"></span>
   </div>
   <div class="gap"></div>
   <div id="log-body"></div>
 </div>
 
 <div class="toast" id="toast"></div>
-<script>
-/* ================================================================
-   Nativro 화면 코드 v0.1
-   SERVER_URL: Apps Script를 "배포"하면 나오는 웹 앱 URL을 붙여넣는 곳
-   ================================================================ */
-const SERVER_URL = "https://script.google.com/macros/s/AKfycbyFXL42fwVnhV_FK_-p5czkaEbPkuKpPSQY93sjZAJHXTHp-ncXpH59-HWpFxPg69SQlw/exec";
 
-/* ── 공통 상태 ── */
-let S = null;                 // {uid, token}
-let T = null;                 // 지금 대화 {mode, persona, hist[], sid, learned[], shown[], avoid[]}
+<script>
+/* ============ 캐릭터 (원본: art/characters.js — 고치면 두 곳 다) ============ */
+/* ==================================================================
+   Nativro 캐릭터 — 임시 그림 (SVG로 직접 그림)
+   나중에 진짜 3D 일러스트로 교체할 때는 renderChar()만 갈아끼우면 됨.
+
+   renderChar(who, expr, mouthOpen)
+     who      : "rachel" | "kim" | "yolanda"
+     expr     : "neutral" | "happy" | "surprised" | "thinking" | "warm"
+     mouthOpen: 0(다문) | 1(조금) | 2(크게)   ← 말할 때 번갈아 쓰면 말하는 것처럼 보임
+   ================================================================== */
+
+const CHARS = {
+  rachel: {
+    name: "Rachel", tag: "40 · 서울 사는 미국인 엄마",
+    skin: "#F6CDA9", skinDk: "#E3AE86", skinLt: "#FFE3C8",
+    hair: "#A85B32", hairDk: "#8A4522", hairLt: "#C87745",
+    cloth: "#E0A03C", clothDk: "#C2822A",
+    bg: "#FFE6CC", accent: "#E8833A",
+    glasses: false, hairStyle: "wavy"
+  },
+  kim: {
+    name: "Kim", tag: "25 · 초등학교 원어민 교사",
+    skin: "#F3C6A5", skinDk: "#DFA983", skinLt: "#FFDFC4",
+    hair: "#3A2C26", hairDk: "#241A16", hairLt: "#54413A",
+    cloth: "#3FB6A8", clothDk: "#2E9488",
+    bg: "#D6F2EE", accent: "#2E9488",
+    glasses: false, hairStyle: "ponytail"
+  },
+  yolanda: {
+    name: "Dr. Yolanda", tag: "60대 · 상담 선생님",
+    skin: "#C08858", skinDk: "#A66F44", skinLt: "#D7A176",
+    hair: "#D8D3CE", hairDk: "#B3ADA7", hairLt: "#EFEBE7",
+    cloth: "#9B7BC4", clothDk: "#7E5FA8",
+    bg: "#EAE1F7", accent: "#7E5FA8",
+    glasses: true, hairStyle: "curly"
+  }
+};
+
+/* ── 머리카락 (뒤/앞 두 겹) ── */
+function hairBack(c) {
+  if (c.hairStyle === "ponytail") {
+    return '<path d="M100 24c30 0 47 21 47 50 0 12-2 22-4 30l14 34c3 8-3 15-11 12l-16-7" fill="' + c.hairDk + '"/>' +
+           '<ellipse cx="146" cy="112" rx="15" ry="26" fill="' + c.hair + '"/>';
+  }
+  if (c.hairStyle === "curly") {
+    return '<ellipse cx="100" cy="76" rx="56" ry="52" fill="' + c.hairDk + '"/>' +
+           '<circle cx="58" cy="66" r="17" fill="' + c.hair + '"/><circle cx="142" cy="66" r="17" fill="' + c.hair + '"/>' +
+           '<circle cx="54" cy="92" r="15" fill="' + c.hairDk + '"/><circle cx="146" cy="92" r="15" fill="' + c.hairDk + '"/>';
+  }
+  return '<path d="M100 24c33 0 50 23 50 54 0 22-4 38-8 50h-84c-4-12-8-28-8-50 0-31 17-54 50-54z" fill="' + c.hairDk + '"/>';
+}
+function hairFront(c) {
+  if (c.hairStyle === "ponytail") {
+    return '<path d="M100 26c-27 0-44 18-45 44 3-9 10-16 20-19 12-4 22 3 34 1 12-2 22-8 30-1 6 5 8 12 9 19-2-27-20-44-48-44z" fill="' + c.hair + '"/>' +
+           '<path d="M74 46c8-8 20-11 30-9-9 4-16 10-20 18-3-4-7-7-10-9z" fill="' + c.hairLt + '"/>' +
+           '<path d="M100 20c-8 0-14 3-14 3 10-1 20 0 28 4 6 3 10 7 12 12 1-11-12-19-26-19z" fill="' + c.hairDk + '"/>';
+  }
+  if (c.hairStyle === "curly") {
+    return '<path d="M100 26c-26 0-42 16-46 38 6-9 14-14 24-15 10-1 15 5 22 5s12-6 22-5c10 1 18 6 24 15-4-22-20-38-46-38z" fill="' + c.hairLt + '"/>' +
+           '<circle cx="72" cy="42" r="12" fill="' + c.hair + '"/><circle cx="100" cy="34" r="13" fill="' + c.hair + '"/>' +
+           '<circle cx="128" cy="42" r="12" fill="' + c.hair + '"/>';
+  }
+  return '<path d="M100 24c-30 0-48 20-50 48 5-13 14-21 26-24 12-3 16 5 24 5s12-8 24-5c12 3 21 11 26 24-2-28-20-48-50-48z" fill="' + c.hair + '"/>' +
+         '<path d="M62 56c7-12 18-19 30-20-11 6-19 15-23 26-2-3-4-5-7-6z" fill="' + c.hairLt + '"/>' +
+         '<path d="M50 74c-2 18 0 34 4 46l-9 2c-5-14-6-33 5-48z" fill="' + c.hair + '"/>' +
+         '<path d="M150 74c2 18 0 34-4 46l9 2c5-14 6-33-5-48z" fill="' + c.hair + '"/>';
+}
+
+/* ── 표정 부품 ── */
+function brows(c, e) {
+  const k = c.hairDk;
+  if (e === "surprised") return '<path d="M68 62q11-9 22-2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 60q11-7 22 2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  if (e === "thinking")  return '<path d="M68 74q11-6 22-3" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 62q11-8 22 0" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  if (e === "warm")      return '<path d="M68 70q11-4 22 1" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 71q11-5 22-1" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  if (e === "happy")     return '<path d="M68 68q11-7 22-2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 66q11-5 22 2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  return '<path d="M69 70q11-6 21-2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 68q11-4 21 2" stroke="' + k + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+}
+function eyes(c, e) {
+  const W = '#FFFFFF', P = '#2B2320';
+  function eye(cx, cy, rx, ry, px, py, pr) {
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="' + W + '"/>' +
+           '<circle cx="' + px + '" cy="' + py + '" r="' + pr + '" fill="' + P + '"/>' +
+           '<circle cx="' + (px + pr * 0.35) + '" cy="' + (py - pr * 0.4) + '" r="' + (pr * 0.34) + '" fill="#fff"/>';
+  }
+  if (e === "happy")
+    return '<path d="M70 86q10-11 20 0" stroke="' + P + '" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+           '<path d="M110 86q10-11 20 0" stroke="' + P + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+  if (e === "surprised") return eye(80, 86, 11, 12, 80, 86, 6.5) + eye(120, 86, 11, 12, 120, 86, 6.5);
+  if (e === "thinking")  return eye(80, 86, 9.5, 9, 83, 82, 5) + eye(120, 86, 9.5, 9, 123, 82, 5);
+  if (e === "warm")      return eye(80, 87, 9.5, 7.5, 80, 87, 5) + eye(120, 87, 9.5, 7.5, 120, 87, 5);
+  return eye(80, 86, 10, 9.5, 80, 87, 5.5) + eye(120, 86, 10, 9.5, 120, 87, 5.5);
+}
+function mouth(c, e, open) {
+  const L = '#8C4A3C', IN = '#7A3B33', T = '#FFFFFF';
+  if (open === 2)
+    return '<ellipse cx="100" cy="118" rx="14" ry="12" fill="' + IN + '"/>' +
+           '<path d="M87 113h26a13 13 0 0 1-26 0z" fill="' + T + '"/>' +
+           '<ellipse cx="100" cy="127" rx="7" ry="4" fill="#C4695E"/>';
+  if (open === 1)
+    return '<ellipse cx="100" cy="117" rx="10" ry="7" fill="' + IN + '"/>' +
+           '<path d="M91 114h18a9 9 0 0 1-18 0z" fill="' + T + '"/>';
+  if (e === "happy")
+    return '<path d="M84 112q16 16 32 0q-16 8-32 0z" fill="' + IN + '"/>' +
+           '<path d="M84 112q16 4 32 0" stroke="' + L + '" stroke-width="2" fill="none"/>';
+  if (e === "surprised") return '<ellipse cx="100" cy="118" rx="7" ry="9" fill="' + IN + '"/>';
+  if (e === "thinking")  return '<path d="M92 117q8-4 16 0" stroke="' + L + '" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  if (e === "warm")      return '<path d="M89 114q11 9 22 0" stroke="' + L + '" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  return '<path d="M90 114q10 7 20 0" stroke="' + L + '" stroke-width="4" fill="none" stroke-linecap="round"/>';
+}
+
+/* ── 캐릭터 한 명 그리기 ── */
+function renderChar(who, expr, open) {
+  const c = CHARS[who] || CHARS.rachel;
+  const e = expr || "neutral";
+  const o = open || 0;
+  const id = who + "-" + Math.random().toString(36).slice(2, 7);
+  return '' +
+  '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="charsvg">' +
+    '<defs>' +
+      '<radialGradient id="sk' + id + '" cx="38%" cy="30%" r="80%">' +
+        '<stop offset="0%" stop-color="' + c.skinLt + '"/><stop offset="70%" stop-color="' + c.skin + '"/>' +
+        '<stop offset="100%" stop-color="' + c.skinDk + '"/></radialGradient>' +
+      '<radialGradient id="bg' + id + '" cx="50%" cy="35%" r="70%">' +
+        '<stop offset="0%" stop-color="#ffffff" stop-opacity=".65"/><stop offset="100%" stop-color="' + c.bg + '"/></radialGradient>' +
+      '<linearGradient id="cl' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + c.cloth + '"/><stop offset="100%" stop-color="' + c.clothDk + '"/></linearGradient>' +
+    '</defs>' +
+    '<circle cx="100" cy="100" r="100" fill="url(#bg' + id + ')"/>' +
+    hairBack(c) +
+    /* 어깨·옷 */
+    '<path d="M44 200c0-30 24-46 56-46s56 16 56 46z" fill="url(#cl' + id + ')"/>' +
+    '<path d="M84 156q16 14 32 0l-4-12h-24z" fill="' + c.skinDk + '"/>' +
+    /* 목 */
+    '<path d="M86 128h28v22q-14 10-28 0z" fill="' + c.skinDk + '"/>' +
+    /* 귀 */
+    '<ellipse cx="48" cy="94" rx="8" ry="11" fill="' + c.skinDk + '"/>' +
+    '<ellipse cx="152" cy="94" rx="8" ry="11" fill="' + c.skinDk + '"/>' +
+    /* 얼굴 */
+    '<path d="M100 34c30 0 48 20 48 50 0 32-21 56-48 56s-48-24-48-56c0-30 18-50 48-50z" fill="url(#sk' + id + ')"/>' +
+    /* 볼 */
+    '<ellipse cx="68" cy="104" rx="10" ry="6" fill="#F08A7A" opacity=".33"/>' +
+    '<ellipse cx="132" cy="104" rx="10" ry="6" fill="#F08A7A" opacity=".33"/>' +
+    /* 코 */
+    '<path d="M100 94v9q-4 3-6 1" stroke="' + c.skinDk + '" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+    brows(c, e) + eyes(c, e) + mouth(c, e, o) +
+    (c.glasses
+      ? '<g fill="none" stroke="#5B5049" stroke-width="3.2" opacity=".85">' +
+        '<rect x="65" y="76" width="30" height="22" rx="10"/>' +
+        '<rect x="105" y="76" width="30" height="22" rx="10"/>' +
+        '<path d="M95 86h10M65 84l-13 3M135 84l13 3"/></g>'
+      : '') +
+    hairFront(c) +
+  '</svg>';
+}
+
+
+/* ============ 설정 ============ */
+const SERVER_URL = "https://script.google.com/macros/s/AKfycbyFXL42fwVnhV_FK_-p5czkaEbPkuKpPSQY93sjZAJHXTHp-ncXpH59-HWpFxPg69SQlw/exec";
+const RATE = { rachel: 1.0, kim: 1.05, yolanda: 0.88 };   /* 사람별 말 빠르기 */
+
+let S = null;     /* 로그인 {uid, token} */
+let T = null;     /* 지금 대화 */
+let HOME = null;  /* 홈 데이터 */
 let busy = false;
 
 function $(id){ return document.getElementById(id); }
@@ -237,13 +445,19 @@ function show(name){
 }
 function toast(msg){
   const t = $("toast"); t.textContent = msg; t.style.display = "block";
-  clearTimeout(t._tm); t._tm = setTimeout(function(){ t.style.display = "none"; }, 2600);
+  clearTimeout(t._tm); t._tm = setTimeout(function(){ t.style.display = "none"; }, 2800);
 }
 function esc(s){
   return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+function pKeyOfName(n){
+  const s = String(n || "").toLowerCase();
+  if (s.indexOf("kim") >= 0) return "kim";
+  if (s.indexOf("yolanda") >= 0) return "yolanda";
+  return "rachel";
+}
 
-/* ── 서버 부르기 (영어 편의점과 같은 방식) ── */
+/* ============ 서버 부르기 ============ */
 async function api(action, payload){
   const body = Object.assign({ action: action }, payload || {});
   if (S) { body.uid = S.uid; body.token = S.token; }
@@ -257,7 +471,7 @@ async function api(action, payload){
   return j;
 }
 
-/* ── 로그인 ── */
+/* ============ 로그인 ============ */
 function saveAuth(){ localStorage.setItem("nativro-auth", JSON.stringify(S)); }
 function logout(){ S = null; localStorage.removeItem("nativro-auth"); show("auth"); }
 async function doLogin(){
@@ -283,8 +497,7 @@ async function doSignup(){
   } catch(e){ $("a-msg").textContent = "서버 연결 실패: " + e.message; }
 }
 
-/* ── 홈 ── */
-let HOME = null;   // load 결과 저장
+/* ============ 홈 ============ */
 async function goHome(){
   show("home");
   try {
@@ -300,7 +513,7 @@ async function goHome(){
   } catch(e){ toast("서버 연결을 확인해 주세요"); }
 }
 
-/* ── 상점 ── */
+/* ============ 상점 ============ */
 async function ensureHome(){
   if (HOME && HOME.shop) return true;
   try { HOME = await api("load", {}); } catch(e){ HOME = null; }
@@ -314,22 +527,22 @@ async function renderShop(){
   let h = "";
   HOME.shop.forEach(function(it, i){
     if (it.h) return;
-    h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow">' + esc(it.n) +
-         '</span><span class="p">\ud83d\udc8e ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
+    h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow nm">' + esc(it.n) +
+         '</span><span class="p">💎 ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
   });
-  h += '<div class="gap"></div><h2>\ud83d\udd12 숨겨진 상점</h2>';
+  h += '<div class="gap"></div><h2>🔒 숨겨진 상점</h2>';
   if (open) {
-    h += '<p class="sub">축하해요! 지금까지 \ud83d\udc8e ' + HOME.diaTotal + '개를 모아서 열렸어요.</p>';
+    h += '<p class="sub">축하해요! 지금까지 💎 ' + HOME.diaTotal + '개를 모아서 열렸어요.</p>';
     HOME.shop.forEach(function(it, i){
       if (!it.h) return;
-      h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow">' + esc(it.n) +
-           '</span><span class="p">\ud83d\udc8e ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
+      h += '<div class="item"><span class="e">' + it.e + '</span><span class="grow nm">' + esc(it.n) +
+           '</span><span class="p">💎 ' + it.p + '</span><button class="btn small" data-buy="' + i + '">사기</button></div>';
     });
   } else {
-    h += '<p class="sub">지금까지 모은 \ud83d\udc8e ' + HOME.diaTotal + ' / 250 — 다 모으면 특별한 상품이 열려요!</p>';
+    h += '<p class="sub">지금까지 모은 💎 ' + HOME.diaTotal + ' / 250 — 다 모으면 특별한 상품이 열려요!</p>';
     HOME.shop.forEach(function(it){
       if (!it.h) return;
-      h += '<div class="item lock"><span class="e">\u2753</span><span class="grow">???</span><span class="p">\ud83d\udc8e ' + it.p + '</span></div>';
+      h += '<div class="item lock"><span class="e">❓</span><span class="grow nm">???</span><span class="p">💎 ' + it.p + '</span></div>';
     });
   }
   $("sh-list").innerHTML = h;
@@ -341,24 +554,24 @@ async function renderShop(){
   });
 }
 async function buyItem(name, price){
-  if (!confirm("「" + name + "」 을(를) \ud83d\udc8e " + price + "에 살까요?")) return;
+  if (!confirm("「" + name + "」 을(를) 💎 " + price + "에 살까요?")) return;
   try {
     const r = await api("buy", { name: name, price: price });
     if (r.err === "부족") return toast("다이아가 조금 모자라요!");
     if (r.err) return toast("실패: " + r.err);
     HOME.diaBal = r.diaBal;
-    toast("\ud83c\udf89 샀어요! 남편에게 청구하세요");
+    toast("🎉 샀어요! 남편에게 청구하세요");
     renderShop();
   } catch(e){ toast("연결 실패 — 다시 시도해 주세요"); }
 }
 
-/* ── 기록 ── */
+/* ============ 기록 ============ */
 async function renderLog(){
   if (!(await ensureHome())) return;
   let h = "<h2>최근 대화</h2>";
   if (!HOME.journal.length) h += '<p class="sub">아직 기록이 없어요</p>';
   HOME.journal.slice().reverse().forEach(function(j){
-    h += '<div class="card"><p class="sub">' + esc(j.d) + '</p><p style="font-size:15px">' + esc(j.sum) + '</p>' +
+    h += '<div class="card"><p class="sub">' + esc(j.d) + '</p><p style="font-size:14.5px">' + esc(j.sum) + '</p>' +
          (j.open ? '<p class="sub">이어서: ' + esc(j.open) + '</p>' : '') + '</div>';
   });
   h += '<div class="gap"></div><h2>최근 배운 것</h2>';
@@ -370,12 +583,7 @@ async function renderLog(){
   $("log-body").innerHTML = h;
 }
 
-/* ================================================================
-   대화 — 녹음(마이크→WAV) · 재생 · 팝업 · 침묵 처리
-   ================================================================ */
-const PNAME = { rachel: "Rachel", kim: "Kim", yolanda: "Dr. Yolanda" };
-
-/* ── 소리 재생 (아이폰은 첫 터치로 잠금 해제 필요) ── */
+/* ============ 소리 재생 + 입 움직임 ============ */
 let player = new Audio();
 let audioUnlocked = false;
 function unlockAudio(){
@@ -389,19 +597,76 @@ function settleAudio(){
   if (playerDone) { const d = playerDone; playerDone = null; d(); }
 }
 function stopAudio(){ try { player.pause(); } catch(e){} settleAudio(); }
-function playB64(b64){
+function playB64(uri, rate){
   return new Promise(function(done){
-    if (!b64) return done();
-    settleAudio();                 /* 이전 재생 기다림을 즉시 풀어줌 */
+    if (!uri) return done();
+    settleAudio();
     playerDone = done;
-    player.src = "data:audio/mp3;base64," + b64;
+    player.src = uri.indexOf("data:") === 0 ? uri : ("data:audio/mpeg;base64," + uri);
+    player.defaultPlaybackRate = rate || 1;
+    player.playbackRate = rate || 1;
     player.onended = settleAudio;
     player.onerror = function(){ settleAudio(); };
     player.play().catch(function(){ settleAudio(); });
   });
 }
 
-/* ── 화면 꺼짐 방지 ── */
+/* 무대(캐릭터) */
+function renderStage(){
+  const st = $("stage");
+  if (!T) { st.innerHTML = ""; return; }
+  if (T.mode === "group") {
+    st.innerHTML =
+      '<div class="stagewrap">' +
+        '<div class="actor duo" id="actor-rachel"><div class="avring"><div id="av-rachel"></div></div><div class="anm">Rachel</div></div>' +
+        '<div class="actor duo" id="actor-kim"><div class="avring"><div id="av-kim"></div></div><div class="anm">Kim</div></div>' +
+      '</div><div class="stagest" id="stagest"></div>';
+    setChar("rachel", "happy", 0); setChar("kim", "neutral", 0);
+  } else {
+    const k = T.persona;
+    st.innerHTML =
+      '<div class="stagewrap">' +
+        '<div class="actor solo on" id="actor-' + k + '"><div class="avring"><div id="av-' + k + '"></div></div><div class="anm">' + CHARS[k].name + '</div></div>' +
+      '</div><div class="stagest" id="stagest"></div>';
+    setChar(k, "happy", 0);
+  }
+}
+function setChar(who, expr, mouth){
+  const el = $("av-" + who);
+  if (el) el.innerHTML = renderChar(who, expr, mouth);
+}
+function setActive(who){
+  document.querySelectorAll(".actor").forEach(function(a){ a.classList.remove("on"); });
+  const el = $("actor-" + who);
+  if (el) el.classList.add("on");
+}
+function stageStatus(t){
+  const el = $("stagest");
+  if (el) el.textContent = t;
+}
+let mouthTm = null, curWho = null, curEmo = "neutral";
+function startMouth(who, emo){
+  stopMouth();
+  curWho = who; curEmo = emo || "neutral";
+  const seq = [1, 2, 1, 0, 2, 1, 2, 0];
+  let i = 0;
+  setChar(who, curEmo, 1);
+  mouthTm = setInterval(function(){ setChar(who, curEmo, seq[i++ % seq.length]); }, 140);
+}
+function stopMouth(){
+  if (mouthTm) { clearInterval(mouthTm); mouthTm = null; }
+  if (curWho) setChar(curWho, curEmo, 0);
+}
+async function speakLine(L){
+  const who = (T && T.mode === "group") ? pKeyOfName(L.speaker) : (T ? T.persona : "rachel");
+  setActive(who);
+  stageStatus(L.speaker + " 말하는 중...");
+  startMouth(who, L.emotion);
+  await playB64(L.audio, RATE[who] || 1);
+  stopMouth();
+}
+
+/* 화면 꺼짐 방지 */
 let wakeLock = null;
 async function keepAwake(){
   try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch(e){}
@@ -411,12 +676,29 @@ document.addEventListener("visibilitychange", function(){
   if (document.visibilityState === "visible" && T) keepAwake();
 });
 
-/* ── 녹음: 마이크 → 16kHz WAV (아이폰 사파리에서도 동작) ── */
+/* ============ 녹음 (마이크 → 음량 보정 → 16kHz WAV) ============ */
 let AC = null, mediaStream = null, srcNode = null, procNode = null, zeroGain = null;
 let recBuf = [], recording = false, recTimer = null, recStart = 0;
+let meterVal = 0, meterTm = null;
+
+function startMeter(){
+  $("meter").style.display = "flex";
+  const bars = $("meter").querySelectorAll("i");
+  const f = [0.5, 0.75, 1, 0.92, 1, 0.7, 0.55];
+  meterTm = setInterval(function(){
+    bars.forEach(function(b, i){
+      const h = 6 + meterVal * 26 * f[i] * (0.65 + 0.35 * Math.random());
+      b.style.height = h + "px";
+    });
+  }, 90);
+}
+function stopMeter(){
+  if (meterTm) { clearInterval(meterTm); meterTm = null; }
+  $("meter").style.display = "none";
+}
 
 async function recBegin(){
-  stopAudio();
+  stopAudio(); stopMouth();
   if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
   await AC.resume();
   mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -427,22 +709,30 @@ async function recBegin(){
   zeroGain = AC.createGain(); zeroGain.gain.value = 0;
   recBuf = [];
   procNode.onaudioprocess = function(e){
-    if (recording) recBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    if (!recording) return;
+    const d = e.inputBuffer.getChannelData(0);
+    recBuf.push(new Float32Array(d));
+    let s = 0, n = 0;
+    for (let i = 0; i < d.length; i += 8) { s += d[i] * d[i]; n++; }
+    meterVal = Math.min(1, Math.sqrt(s / (n || 1)) * 9);
   };
   srcNode.connect(procNode);
   procNode.connect(zeroGain);
   zeroGain.connect(AC.destination);
   recording = true;
   recStart = Date.now();
+  startMeter();
+  stageStatus("듣고 있어요 👂");
   recTimer = setInterval(function(){
     const s = Math.floor((Date.now() - recStart) / 1000);
     $("t-status").textContent = "🔴 " + s + "초";
-    if (s >= 55 && recording && !busy) micTap();   // 받아쓰기 한도(1분) 전에 자동 멈춤
+    if (s >= 55 && recording && !busy) micTap();   /* 받아쓰기 한도(1분) 전에 자동 멈춤 */
   }, 500);
 }
 function micCleanup(){
   recording = false;
   clearInterval(recTimer);
+  stopMeter();
   const stEl = $("t-status"); if (stEl) stEl.textContent = "";
   try { if (procNode) { procNode.onaudioprocess = null; procNode.disconnect(); } } catch(e){}
   try { if (srcNode) srcNode.disconnect(); } catch(e){}
@@ -459,7 +749,15 @@ function recEnd(){
   recBuf = [];
   return encodeWav16k(all, AC.sampleRate);
 }
+/* 음량 보정이 핵심: 작게 말해도 받아쓰기가 잘 되도록 최대로 키워서 보냄 */
 function encodeWav16k(f32, inRate){
+  let peak = 0;
+  for (let i = 0; i < f32.length; i += 4) {
+    const a = Math.abs(f32[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < 0.004) return null;                    /* 사실상 무음 */
+  const gain = Math.min(0.95 / peak, 25);
   const ratio = inRate / 16000;
   const outLen = Math.floor(f32.length / ratio);
   const pcm = new Int16Array(outLen);
@@ -467,7 +765,7 @@ function encodeWav16k(f32, inRate){
     const a = Math.floor(i * ratio), b = Math.min(f32.length, Math.floor((i + 1) * ratio));
     let sum = 0, c = 0;
     for (let j = a; j < b; j++) { sum += f32[j]; c++; }
-    let v = c ? sum / c : 0;
+    let v = (c ? sum / c : 0) * gain;
     v = Math.max(-1, Math.min(1, v));
     pcm[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
   }
@@ -487,7 +785,7 @@ function encodeWav16k(f32, inRate){
   return btoa(bin);
 }
 
-/* ── 대화 시작 ── */
+/* ============ 대화 ============ */
 async function startTalk(mode, persona){
   unlockAudio(); keepAwake();
   stopAudio();
@@ -496,9 +794,10 @@ async function startTalk(mode, persona){
   busy = false;
   T = { mode: mode, persona: persona, hist: [], sid: String(Date.now()),
         learned: [], shown: [], avoid: [], silences: 0 };
-  $("t-title").textContent = mode === "group" ? "Rachel + Kim 👭" : PNAME[persona];
+  $("t-title").textContent = mode === "group" ? "셋이서 수다 👭" : CHARS[persona].name;
   $("chatbox").innerHTML = "";
   $("pops").innerHTML = "";
+  renderStage();
   setMic("idle");
   show("talk");
   await sendTurn("[SESSION_START]", false);
@@ -514,12 +813,10 @@ function bubble(who, text, me, thinking){
 function setMic(state){
   const b = $("micbtn");
   b.className = "";
-  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 눌러서 끝내기"; }
+  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 그만 말하기"; }
   else if (state === "wait") { b.classList.add("wait"); b.textContent = "생각하는 중..."; }
   else b.textContent = "🎤 눌러서 말하기";
 }
-
-/* ── 마이크 단추 ── */
 async function micTap(){
   if (busy) return;
   unlockAudio();
@@ -530,11 +827,13 @@ async function micTap(){
     return;
   }
   setMic("wait"); busy = true;
+  stageStatus("받아쓰는 중...");
   try {
     const wav = recEnd();
-    if (wav.length < 8000) { toast("너무 짧아요 — 다시 눌러 보세요"); setMic("idle"); busy = false; return; }
+    if (!wav) { toast("🔇 너무 작게 들렸어요 — 폰을 조금 가까이!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
+    if (wav.length < 8000) { toast("너무 짧아요 — 다시 한 번!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
     const st = await api("stt", { audio: wav });
-    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패" : "잘 안 들렸어요 — 한 번 더!"); setMic("idle"); busy = false; return; }
+    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패 — 한 번 더!" : "잘 안 들렸어요 — 한 번 더!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
     busy = false;
     await sendTurn(st.text, true);
   } catch(e){ toast("오류: " + e.message); setMic("idle"); busy = false; }
@@ -545,13 +844,13 @@ function typeInstead(){
   if (t && t.trim()) sendTurn(t.trim(), true);
 }
 
-/* ── 한 턴 보내기 ── */
 let silenceTm = null;
 async function sendTurn(text, isUser){
   if (busy || !T) return;
-  const mySid = T.sid;              /* 응답이 늦게 와도 이 세션 것일 때만 적용 */
+  const mySid = T.sid;
   busy = true; setMic("wait");
   clearTimeout(silenceTm);
+  stageStatus("생각하는 중...");
   if (isUser) { bubble("나", text, true); T.silences = 0; }
   T.hist.push({ u: 1, t: text });
   const think = bubble("", "...", false, true);
@@ -562,20 +861,20 @@ async function sendTurn(text, isUser){
       avoid: T.avoid.slice(-10)
     });
     think.remove();
-    if (!T || T.sid !== mySid) return;          /* 세션이 바뀌었으면 버림 */
+    if (!T || T.sid !== mySid) return;
     if (r.err) { toast("오류: " + r.err); busy = false; setMic("idle"); return; }
     if (r.popup && r.popup.orig) showPop(r.popup);
     const lines = r.lines || [];
-    lines.forEach(function(L){                   /* 글은 소리보다 먼저 전부 표시 */
+    lines.forEach(function(L){
       T.hist.push({ s: L.speaker, t: L.text });
       bubble(L.speaker, L.text, false);
     });
     busy = false; setMic("idle");
     for (const L of lines) {
       if (!T || T.sid !== mySid) return;
-      await playB64(L.audio);
+      await speakLine(L);
     }
-    if (T && T.sid === mySid) armSilence();
+    if (T && T.sid === mySid) { stageStatus("당신 차례예요! 🎤"); armSilence(); }
   } catch(e){
     think.remove();
     if (!T || T.sid !== mySid) return;
@@ -592,7 +891,7 @@ function armSilence(){
   }
 }
 
-/* ── 팝업 카드 ── */
+/* ============ 팝업 카드 ============ */
 function showPop(p){
   T.shown.push({ orig: p.orig, better: p.better });
   T.avoid.push(p.better);
@@ -610,19 +909,25 @@ function showPop(p){
     T.learned.push(p);
     T.shown = T.shown.filter(function(s){ return s.better !== p.better; });
     toast("💎 +1 배웠어요! 이제 직접 말해 보세요");
+    const who = T.mode === "group" ? "kim" : T.persona;
     api("tts", {
-      persona: T.mode === "group" ? "kim" : T.persona,
+      persona: who,
       text: 'That works! But natives would usually say: "' + p.better + '". Try saying it!'
-    }).then(function(r){ if (r.audio) playB64(r.audio); });
+    }).then(function(r){
+      if (r.audio) {
+        setActive(who); startMouth(who, "happy");
+        playB64(r.audio, RATE[who] || 1).then(function(){ stopMouth(); });
+      }
+    });
     setTimeout(function(){ d.remove(); }, 12000);
   };
   box.appendChild(d);
 }
 
-/* ── 끝내기 → 정리 ── */
+/* ============ 끝내기 → 정리 ============ */
 function leaveTalk(){
   clearTimeout(silenceTm);
-  stopAudio();
+  stopAudio(); stopMouth();
   if (recording) micCleanup();
   recBuf = [];
   busy = false;
@@ -645,9 +950,14 @@ async function finishTalk(){
     if (r.err) { $("s-body").innerHTML = '<p class="sub">정리 실패: ' + esc(r.err) + '</p>'; return; }
     let h = "";
     (r.praise || []).forEach(function(p){ h += '<div class="praise">🌟 ' + esc(p) + '</div>'; });
-    h += '<div class="gain">+' + r.xpGain + ' XP · +' + r.diaGain + ' 💎' +
-         (r.weekBonus ? ' <span style="font-size:14px">(주 4일 보너스 +10 포함!)</span>' : '') + '</div>';
-    h += '<p class="center sub">레벨 ' + r.level + ' · 보유 💎 ' + r.diaBal + '</p><div class="gap"></div>';
+    h += '<div class="gainbox">' +
+         '<div class="gain"><b>+' + r.xpGain + '</b><small>XP</small></div>' +
+         '<div class="gain"><b style="color:#C98A12">+' + r.diaGain + '</b><small>💎 다이아</small></div>' +
+         '<div class="gain"><b>' + r.level + '</b><small>레벨</small></div></div>';
+    if (r.weekBonus) h += '<p class="center sub">🎁 주 4일 보너스 +10 포함!</p>';
+    const pct = Math.round((r.xp % 250) / 250 * 100);
+    h += '<div class="lvlbar"><i style="width:' + pct + '%"></i></div>' +
+         '<p class="sub center">다음 레벨까지 ' + (250 - (r.xp % 250)) + ' XP · 보유 💎 ' + r.diaBal + '</p><div class="gap"></div>';
     if ((r.corrections || []).length) {
       h += "<h2>오늘 배운 것</h2>";
       r.corrections.forEach(function(c){
@@ -662,8 +972,18 @@ async function finishTalk(){
   }
 }
 
-/* ── 시작 ── */
+/* ============ 시작 ============ */
 (function boot(){
+  ["rachel", "kim", "yolanda"].forEach(function(w){
+    const el = $("hv-" + w);
+    if (el) el.innerHTML = renderChar(w, "happy", 0);
+  });
+  $("hv-g1").innerHTML = renderChar("rachel", "happy", 0);
+  $("hv-g2").innerHTML = renderChar("kim", "surprised", 0);
+  $("auth-avs").innerHTML =
+    "<span>" + renderChar("rachel", "happy", 0) + "</span>" +
+    "<span>" + renderChar("kim", "happy", 0) + "</span>" +
+    "<span>" + renderChar("yolanda", "warm", 0) + "</span>";
   try {
     const saved = localStorage.getItem("nativro-auth");
     if (saved) { S = JSON.parse(saved); goHome(); return; }
