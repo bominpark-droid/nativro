@@ -592,20 +592,42 @@ function unlockAudio(){
   player.play().catch(function(){});
   audioUnlocked = true;
 }
-let playerDone = null;
+let playerDone = null, playerUrl = null;
 function settleAudio(){
   if (playerDone) { const d = playerDone; playerDone = null; d(); }
+  if (playerUrl) { try { URL.revokeObjectURL(playerUrl); } catch(e){} playerUrl = null; }
 }
 function stopAudio(){ try { player.pause(); } catch(e){} settleAudio(); }
+/* 아이폰 사파리는 큰 data: 소리를 못 틀 때가 있어 blob: 로 바꿔서 튼다 */
+function toPlayableUrl_(uri){
+  const m = /^data:([^;]+);base64,([\s\S]*)$/.exec(uri);
+  if (!m) return uri;
+  try {
+    const bin = atob(m[2]);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return URL.createObjectURL(new Blob([u8], { type: m[1] }));
+  } catch(e){ return uri; }
+}
 function playB64(uri, rate){
   return new Promise(function(done){
     if (!uri) return done();
     settleAudio();
-    playerDone = done;
-    player.src = uri.indexOf("data:") === 0 ? uri : ("data:audio/mpeg;base64," + uri);
+    let watchTm = setTimeout(settleAudio, 30000);   /* 무슨 일이 있어도 다음 차례로 넘어가는 안전장치 */
+    playerDone = function(){ clearTimeout(watchTm); done(); };
+    if (uri.indexOf("data:") !== 0) uri = "data:audio/mpeg;base64," + uri;
+    const src = toPlayableUrl_(uri);
+    if (src.indexOf("blob:") === 0) playerUrl = src;
+    player.src = src;
     player.defaultPlaybackRate = rate || 1;
     player.playbackRate = rate || 1;
+    player.onloadedmetadata = function(){
+      clearTimeout(watchTm);
+      const dsec = isFinite(player.duration) ? player.duration : 25;
+      watchTm = setTimeout(settleAudio, dsec / (rate || 1) * 1000 + 2500);
+    };
     player.onended = settleAudio;
+    player.onpause = function(){ if (player.ended) settleAudio(); };
     player.onerror = function(){ settleAudio(); };
     player.play().catch(function(){ settleAudio(); });
   });
@@ -702,7 +724,7 @@ async function recBegin(){
   if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
   await AC.resume();
   mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true }
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
   });
   srcNode = AC.createMediaStreamSource(mediaStream);
   procNode = AC.createScriptProcessor(4096, 1, 1);
@@ -749,15 +771,43 @@ function recEnd(){
   recBuf = [];
   return encodeWav16k(all, AC.sampleRate);
 }
-/* 음량 보정이 핵심: 작게 말해도 받아쓰기가 잘 되도록 최대로 키워서 보냄 */
-function encodeWav16k(f32, inRate){
-  let peak = 0;
-  for (let i = 0; i < f32.length; i += 4) {
-    const a = Math.abs(f32[i]);
-    if (a > peak) peak = a;
+/* ── 받아쓰기 전 손질 ──
+   ① 단추 누르는 소리가 들어가는 맨 앞/맨 뒤를 잘라냄
+   ② 말이 시작·끝나는 지점을 찾아 그 바깥 잡음을 걷어냄
+   ③ 남은 "목소리 구간" 기준으로만 음량을 키움
+   → 잡음이 단어로 오인되는 것과 목소리가 안 커지는 것을 동시에 해결 */
+function findSpeech_(f32, inRate){
+  let start = Math.min(f32.length, Math.floor(inRate * 0.15));   /* 시작 단추 소리 */
+  let end = Math.max(start, f32.length - Math.floor(inRate * 0.12)); /* 멈춤 단추 소리 */
+  const win = Math.max(64, Math.floor(inRate * 0.02));           /* 20ms 창 */
+  function rmsAt(i){
+    let sum = 0, c = 0;
+    const lim = Math.min(end, i + win);
+    for (let j = i; j < lim; j++) { sum += f32[j] * f32[j]; c++; }
+    return Math.sqrt(sum / (c || 1));
   }
-  if (peak < 0.004) return null;                    /* 사실상 무음 */
-  const gain = Math.min(0.95 / peak, 25);
+  let peakR = 0;
+  for (let i = start; i < end; i += win) { const r = rmsAt(i); if (r > peakR) peakR = r; }
+  if (peakR < 0.0035) return null;                               /* 사실상 무음 */
+  const thr = Math.max(0.004, peakR * 0.12);
+  let s0 = start;
+  for (let i = start; i < end; i += win) {
+    if (rmsAt(i) > thr) { s0 = Math.max(start, i - Math.floor(inRate * 0.15)); break; }
+  }
+  let e0 = end;
+  for (let i = end - win; i > s0; i -= win) {
+    if (rmsAt(i) > thr) { e0 = Math.min(end, i + win + Math.floor(inRate * 0.2)); break; }
+  }
+  if (e0 - s0 < inRate * 0.25) return null;                      /* 너무 짧음 */
+  let segPeak = 0;
+  for (let i = s0; i < e0; i += 2) { const a = Math.abs(f32[i]); if (a > segPeak) segPeak = a; }
+  return { s0: s0, e0: e0, gain: Math.min(0.95 / (segPeak || 1), 20) };
+}
+function encodeWav16k(f32, inRate){
+  const sp = findSpeech_(f32, inRate);
+  if (!sp) return null;
+  f32 = f32.subarray(sp.s0, sp.e0);
+  const gain = sp.gain;
   const ratio = inRate / 16000;
   const outLen = Math.floor(f32.length / ratio);
   const pcm = new Int16Array(outLen);
