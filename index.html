@@ -458,15 +458,28 @@ function pKeyOfName(n){
 }
 
 /* ============ 서버 부르기 ============ */
-async function api(action, payload){
+async function api(action, payload, limitMs){
   const body = Object.assign({ action: action }, payload || {});
   if (S) { body.uid = S.uid; body.token = S.token; }
-  const res = await fetch(SERVER_URL, {
-    method: "POST", redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body)
-  });
-  const j = await res.json();
+  const ctl = ("AbortController" in window) ? new AbortController() : null;
+  const tm = setTimeout(function(){ if (ctl) ctl.abort(); }, limitMs || 70000);
+  let res;
+  try {
+    res = await fetch(SERVER_URL, {
+      method: "POST", redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+      signal: ctl ? ctl.signal : undefined
+    });
+  } catch(e){
+    clearTimeout(tm);
+    throw new Error(e && e.name === "AbortError" ? "서버가 너무 오래 걸려요" : "인터넷 연결을 확인해 주세요");
+  }
+  clearTimeout(tm);
+  const txt = await res.text();
+  let j;
+  try { j = JSON.parse(txt); }
+  catch(e){ throw new Error("서버 응답이 이상해요 (" + res.status + ")"); }
   if (j && j.err === "auth") { logout(); throw new Error("다시 로그인해 주세요"); }
   return j;
 }
@@ -684,7 +697,11 @@ async function speakLine(L){
   setActive(who);
   stageStatus(L.speaker + " 말하는 중...");
   startMouth(who, L.emotion);
-  await playB64(L.audio, RATE[who] || 1);
+  const clips = (L.audios && L.audios.length) ? L.audios : (L.audio ? [L.audio] : []);
+  for (const c of clips) {
+    if (!T) break;
+    await playB64(c, RATE[who] || 1);
+  }
   stopMouth();
 }
 
@@ -720,6 +737,7 @@ function stopMeter(){
 }
 
 async function recBegin(){
+  stopWait();
   stopAudio(); stopMouth();
   if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
   await AC.resume();
@@ -877,16 +895,17 @@ async function micTap(){
     return;
   }
   setMic("wait"); busy = true;
-  stageStatus("받아쓰는 중...");
+  startWait("받아쓰는 중...");
   try {
     const wav = recEnd();
-    if (!wav) { toast("🔇 너무 작게 들렸어요 — 폰을 조금 가까이!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
-    if (wav.length < 8000) { toast("너무 짧아요 — 다시 한 번!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
-    const st = await api("stt", { audio: wav });
-    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패 — 한 번 더!" : "잘 안 들렸어요 — 한 번 더!"); setMic("idle"); busy = false; stageStatus("당신 차례예요! 🎤"); return; }
+    if (!wav) { stopWait(); toast("🔇 너무 작게 들렸어요 — 폰을 조금 가까이!"); resetTurn(); return; }
+    if (wav.length < 8000) { stopWait(); toast("너무 짧아요 — 다시 한 번!"); resetTurn(); return; }
+    const st = await api("stt", { audio: wav }, 45000);
+    stopWait();
+    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패 — 한 번 더!" : "잘 안 들렸어요 — 한 번 더!"); resetTurn(); return; }
     busy = false;
     await sendTurn(st.text, true);
-  } catch(e){ toast("오류: " + e.message); setMic("idle"); busy = false; }
+  } catch(e){ stopWait(); sysBubble(e.message); resetTurn("다시 눌러서 말해 보세요"); }
 }
 function typeInstead(){
   if (busy || recording || !T) return;
@@ -895,12 +914,38 @@ function typeInstead(){
 }
 
 let silenceTm = null;
+/* 오류가 나도 화면이 '생각하는 중'에 굳지 않게 — 모든 회복 경로가 이걸 쓴다 */
+function resetTurn(msg){
+  busy = false;
+  setMic("idle");
+  stopMouth();
+  stageStatus(msg || "당신 차례예요! 🎤");
+}
+function sysBubble(text){
+  const d = document.createElement("div");
+  d.className = "bb them thinking";
+  d.textContent = "⚠️ " + text;
+  $("chatbox").appendChild(d);
+  $("chatbox").scrollTop = 999999;
+}
+/* 기다리는 동안 초를 세어 보여준다 — 멈춘 게 아니라는 신호 */
+let waitTm = null;
+function startWait(label){
+  clearInterval(waitTm);
+  const t0 = Date.now();
+  stageStatus(label);
+  waitTm = setInterval(function(){
+    stageStatus(label + " " + Math.floor((Date.now() - t0) / 1000) + "초");
+  }, 1000);
+}
+function stopWait(){ clearInterval(waitTm); waitTm = null; }
+
 async function sendTurn(text, isUser){
   if (busy || !T) return;
   const mySid = T.sid;
   busy = true; setMic("wait");
   clearTimeout(silenceTm);
-  stageStatus("생각하는 중...");
+  startWait("생각하는 중...");
   if (isUser) { bubble("나", text, true); T.silences = 0; }
   T.hist.push({ u: 1, t: text });
   const think = bubble("", "...", false, true);
@@ -910,9 +955,9 @@ async function sendTurn(text, isUser){
       history: T.hist, userText: isUser ? text : "",
       avoid: T.avoid.slice(-10)
     });
-    think.remove();
-    if (!T || T.sid !== mySid) return;
-    if (r.err) { toast("오류: " + r.err); busy = false; setMic("idle"); return; }
+    think.remove(); stopWait();
+    if (!T || T.sid !== mySid) { busy = false; return; }
+    if (r.err) { sysBubble("서버 오류: " + r.err); resetTurn("다시 눌러서 말해 보세요"); return; }
     if (r.popup && r.popup.orig) showPop(r.popup);
     const lines = r.lines || [];
     lines.forEach(function(L){
@@ -920,16 +965,17 @@ async function sendTurn(text, isUser){
       bubble(L.speaker, L.text, false);
     });
     busy = false; setMic("idle");
+    if (!lines.length) { resetTurn("다시 눌러서 말해 보세요"); return; }
     for (const L of lines) {
       if (!T || T.sid !== mySid) return;
       await speakLine(L);
     }
     if (T && T.sid === mySid) { stageStatus("당신 차례예요! 🎤"); armSilence(); }
   } catch(e){
-    think.remove();
-    if (!T || T.sid !== mySid) return;
-    toast("연결 오류: " + e.message);
-    busy = false; setMic("idle");
+    think.remove(); stopWait();
+    if (!T || T.sid !== mySid) { busy = false; return; }
+    sysBubble(e.message + " — 다시 말해 보세요");
+    resetTurn("다시 눌러서 말해 보세요");
   }
 }
 function armSilence(){
@@ -977,6 +1023,7 @@ function showPop(p){
 /* ============ 끝내기 → 정리 ============ */
 function leaveTalk(){
   clearTimeout(silenceTm);
+  stopWait();
   stopAudio(); stopMouth();
   if (recording) micCleanup();
   recBuf = [];
