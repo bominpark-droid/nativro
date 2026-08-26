@@ -125,6 +125,11 @@ input:focus{outline:none; border-color:var(--orange)}
   box-shadow:0 10px 22px -8px rgba(223,110,30,.6);
 }
 #micbtn.rec{background:linear-gradient(180deg,#EE6A55,#D74B36); animation:pulse 1.1s infinite}
+#micbtn.listen{background:linear-gradient(180deg,#58B368,#3E9A50)}
+#hfrow{display:flex; justify-content:center; margin-bottom:8px}
+#hfbtn{border:1.5px solid var(--line); background:var(--card); color:var(--soft); font-family:inherit;
+ font-size:12.5px; font-weight:700; padding:7px 14px; border-radius:99px; cursor:pointer}
+#hfbtn.on{background:#EAF6EC; border-color:#58B368; color:#2F7A40}
 #micbtn.wait{background:#D9CDBD; color:#8A7B70; box-shadow:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}}
 .talkfoot{display:flex; justify-content:space-between; margin-top:9px; font-size:13.5px; color:var(--soft)}
@@ -229,6 +234,7 @@ input:focus{outline:none; border-color:var(--orange)}
   <div id="chatbox"></div>
   <div id="pops"></div>
   <div id="talkctrl">
+    <div id="hfrow"><button id="hfbtn" onclick="toggleHF()"></button></div>
     <div id="meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button id="micbtn" onclick="micTap()">🎤 눌러서 말하기</button>
     <div class="talkfoot">
@@ -461,27 +467,37 @@ function pKeyOfName(n){
 async function api(action, payload, limitMs){
   const body = Object.assign({ action: action }, payload || {});
   if (S) { body.uid = S.uid; body.token = S.token; }
-  const ctl = ("AbortController" in window) ? new AbortController() : null;
-  const tm = setTimeout(function(){ if (ctl) ctl.abort(); }, limitMs || 70000);
-  let res;
-  try {
-    res = await fetch(SERVER_URL, {
-      method: "POST", redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(body),
-      signal: ctl ? ctl.signal : undefined
-    });
-  } catch(e){
+  const bodyStr = JSON.stringify(body);
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {          /* 구글이 잠깐 헛돌면(404 등) 1초 뒤 한 번 더 */
+    if (attempt) await new Promise(function(ok){ setTimeout(ok, 1000); });
+    const ctl = ("AbortController" in window) ? new AbortController() : null;
+    const tm = setTimeout(function(){ if (ctl) ctl.abort(); }, limitMs || 70000);
+    let res;
+    try {
+      res = await fetch(SERVER_URL, {
+        method: "POST", redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: bodyStr,
+        signal: ctl ? ctl.signal : undefined
+      });
+    } catch(e){
+      clearTimeout(tm);
+      if (e && e.name === "AbortError") throw new Error("서버가 너무 오래 걸려요");
+      lastErr = new Error("인터넷 연결을 확인해 주세요"); continue;
+    }
     clearTimeout(tm);
-    throw new Error(e && e.name === "AbortError" ? "서버가 너무 오래 걸려요" : "인터넷 연결을 확인해 주세요");
+    const txt = await res.text();
+    try {
+      const j = JSON.parse(txt);
+      if (j && j.err === "auth") { logout(); throw new Error("다시 로그인해 주세요"); }
+      return j;
+    } catch(e){
+      if (String(e.message).indexOf("로그인") >= 0) throw e;
+      lastErr = new Error("서버 응답이 이상해요 (" + res.status + ")");
+    }
   }
-  clearTimeout(tm);
-  const txt = await res.text();
-  let j;
-  try { j = JSON.parse(txt); }
-  catch(e){ throw new Error("서버 응답이 이상해요 (" + res.status + ")"); }
-  if (j && j.err === "auth") { logout(); throw new Error("다시 로그인해 주세요"); }
-  return j;
+  throw lastErr || new Error("연결 실패");
 }
 
 /* ============ 로그인 ============ */
@@ -712,13 +728,31 @@ async function keepAwake(){
 }
 function releaseWake(){ try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch(e){} }
 document.addEventListener("visibilitychange", function(){
-  if (document.visibilityState === "visible" && T) keepAwake();
+  if (document.visibilityState === "visible") {
+    if (T) keepAwake();
+    if (T && handsFree && !busy && !recording) vadStart();
+  } else if (recording) { micCleanup(); setMic("idle"); }
 });
 
 /* ============ 녹음 (마이크 → 음량 보정 → 16kHz WAV) ============ */
 let AC = null, mediaStream = null, srcNode = null, procNode = null, zeroGain = null;
 let recBuf = [], recording = false, recTimer = null, recStart = 0;
 let meterVal = 0, meterTm = null;
+let vad = null;                                   /* 말 시작/끝 자동 감지 상태 */
+let handsFree = true;                             /* 그냥 말하기 모드 */
+try { handsFree = localStorage.getItem("nativro-hf") !== "0"; } catch(e){}
+function hfPaint(){
+  const b = $("hfbtn"); if (!b) return;
+  b.className = handsFree ? "on" : "";
+  b.textContent = handsFree ? "🙌 그냥 말하면 돼요 · 누르면 버튼 방식" : "✋ 버튼 눌러 말하기 · 누르면 자동으로";
+}
+function toggleHF(){
+  handsFree = !handsFree;
+  try { localStorage.setItem("nativro-hf", handsFree ? "1" : "0"); } catch(e){}
+  hfPaint();
+  if (!handsFree && recording && vad) { micCleanup(); setMic("idle"); stageStatus("당신 차례예요! 🎤"); }
+  if (handsFree && T && !busy && !recording) vadStart();
+}
 
 function startMeter(){
   $("meter").style.display = "flex";
@@ -736,7 +770,7 @@ function stopMeter(){
   $("meter").style.display = "none";
 }
 
-async function recBegin(){
+async function recBegin(vadOn){
   stopWait();
   stopAudio(); stopMouth();
   if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
@@ -748,13 +782,17 @@ async function recBegin(){
   procNode = AC.createScriptProcessor(4096, 1, 1);
   zeroGain = AC.createGain(); zeroGain.gain.value = 0;
   recBuf = [];
+  vad = vadOn ? { started: false, consec: 0, sil: 0, speech: 0,
+                  floor: 0, fcnt: 0, start: 0, opened: Date.now() } : null;
   procNode.onaudioprocess = function(e){
     if (!recording) return;
     const d = e.inputBuffer.getChannelData(0);
     recBuf.push(new Float32Array(d));
     let s = 0, n = 0;
     for (let i = 0; i < d.length; i += 8) { s += d[i] * d[i]; n++; }
-    meterVal = Math.min(1, Math.sqrt(s / (n || 1)) * 9);
+    const rms = Math.sqrt(s / (n || 1));
+    meterVal = Math.min(1, rms * 9);
+    if (vad) vadStep(rms);
   };
   srcNode.connect(procNode);
   procNode.connect(zeroGain);
@@ -762,15 +800,58 @@ async function recBegin(){
   recording = true;
   recStart = Date.now();
   startMeter();
-  stageStatus("듣고 있어요 👂");
+  if (vadOn) { setMic("listen"); stageStatus("그냥 말씀하세요 — 말 끝나면 알아서 보내요 👂"); }
+  else { setMic("rec"); stageStatus("듣고 있어요 👂"); armRecTimer(); }
+}
+function armRecTimer(){
+  clearInterval(recTimer);
   recTimer = setInterval(function(){
-    const s = Math.floor((Date.now() - recStart) / 1000);
-    $("t-status").textContent = "🔴 " + s + "초";
-    if (s >= 55 && recording && !busy) micTap();   /* 받아쓰기 한도(1분) 전에 자동 멈춤 */
+    const sec = Math.floor((Date.now() - recStart) / 1000);
+    $("t-status").textContent = "🔴 " + sec + "초";
+    if (sec >= 55 && recording && !busy) finishSpeak();   /* 받아쓰기 한도(1분) 전에 자동 멈춤 */
   }, 500);
+}
+/* 말 시작: 소리가 배경보다 뚜렷이 커지면 · 말 끝: 1.3초 조용하면 자동 전송 */
+function vadStep(rms){
+  const v = vad; if (!v) return;
+  if (!v.started) {
+    if (v.fcnt < 8) { v.floor += rms; v.fcnt++; if (v.fcnt === 8) v.floor /= 8; return; }
+    const startTh = Math.max(0.02, v.floor * 4);
+    if (rms > startTh) {
+      v.consec++;
+      if (v.consec >= 3) {
+        v.started = true;
+        v.start = Math.max(0, recBuf.length - 7);   /* 말 직전 0.5초부터 살림 */
+        recStart = Date.now();
+        setMic("rec"); stageStatus("듣는 중 🔴");
+        armRecTimer();
+      }
+    } else v.consec = 0;
+    const idle = Date.now() - v.opened;
+    if (T && T.mode === "group" && T.silences < 2 && idle > 8000) {
+      micCleanup(); setMic("wait");
+      T.silences++; sendTurn("[SILENT]", false);
+      return;
+    }
+    if (idle > 60000) {                              /* 1분간 말 없으면 쉬어서 배터리 아낌 */
+      micCleanup(); setMic("idle");
+      stageStatus("쉬는 중 — 🎤 누르면 다시 들어요");
+    }
+    return;
+  }
+  const endTh = Math.max(0.010, v.floor * 2);
+  if (rms > Math.max(0.016, v.floor * 3)) v.speech++;
+  if (rms < endTh) { v.sil++; if (v.sil >= 15 && v.speech >= 6) finishSpeak(); }
+  else v.sil = 0;
+}
+async function vadStart(){
+  if (!T || busy || recording) return;
+  try { await recBegin(true); }
+  catch(e){ toast("마이크를 허용해 주세요"); setMic("idle"); stageStatus("🎤 눌러서 말하기"); }
 }
 function micCleanup(){
   recording = false;
+  vad = null;
   clearInterval(recTimer);
   stopMeter();
   const stEl = $("t-status"); if (stEl) stEl.textContent = "";
@@ -867,6 +948,7 @@ async function startTalk(mode, persona){
   $("pops").innerHTML = "";
   renderStage();
   setMic("idle");
+  hfPaint();
   show("talk");
   await sendTurn("[SESSION_START]", false);
 }
@@ -881,46 +963,66 @@ function bubble(who, text, me, thinking){
 function setMic(state){
   const b = $("micbtn");
   b.className = "";
-  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 그만 말하기"; }
+  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 말 끝났어요"; }
+  else if (state === "listen") { b.classList.add("listen"); b.textContent = "👂 듣는 중 — 누르면 바로 보내기"; }
   else if (state === "wait") { b.classList.add("wait"); b.textContent = "생각하는 중..."; }
   else b.textContent = "🎤 눌러서 말하기";
 }
 async function micTap(){
-  if (busy) return;
   unlockAudio();
   clearTimeout(silenceTm);
-  if (!recording) {
-    try { await recBegin(); setMic("rec"); }
-    catch(e){ toast("마이크를 허용해 주세요"); }
-    return;
-  }
-  setMic("wait"); busy = true;
-  startWait("받아쓰는 중...");
+  if (recording) { await finishSpeak(); return; }   /* 듣는 중이면 = 지금 보내기 */
+  if (busy) return;
+  try { await recBegin(false); }
+  catch(e){ toast("마이크를 허용해 주세요"); }
+}
+/* 말이 끝났을 때 (자동이든 버튼이든) — 받아쓰기+대답을 한 번에 요청 */
+async function finishSpeak(){
+  if (!recording || busy || !T) return;
+  const v = vad;
+  busy = true; setMic("wait");
+  clearTimeout(silenceTm);
+  if (v && v.started && v.start > 0) recBuf = recBuf.slice(v.start);
+  const wav = recEnd();
+  if (!wav) { toast("🔇 너무 작게 들렸어요 — 폰을 조금 가까이!"); busy = false; resumeInput(); return; }
+  if (wav.length < 8000) { toast("너무 짧아요 — 다시 한 번!"); busy = false; resumeInput(); return; }
+  await sendAudio(wav);
+}
+async function sendAudio(wav){
+  if (!T) { busy = false; return; }
+  const mySid = T.sid;
+  startWait("알아듣는 중...");
+  const myB = bubble("나", "…", true);
   try {
-    const wav = recEnd();
-    if (!wav) { stopWait(); toast("🔇 너무 작게 들렸어요 — 폰을 조금 가까이!"); resetTurn(); return; }
-    if (wav.length < 8000) { stopWait(); toast("너무 짧아요 — 다시 한 번!"); resetTurn(); return; }
-    const st = await api("stt", { audio: wav }, 45000);
+    const r = await api("voice", {
+      audio: wav, mode: T.mode, persona: T.persona, sid: T.sid,
+      history: T.hist, avoid: T.avoid.slice(-10)
+    }, 90000);
     stopWait();
-    if (st.err || !st.text) { toast(st.err ? "받아쓰기 실패 — 한 번 더!" : "잘 안 들렸어요 — 한 번 더!"); resetTurn(); return; }
-    busy = false;
-    await sendTurn(st.text, true);
-  } catch(e){ stopWait(); sysBubble(e.message); resetTurn("다시 눌러서 말해 보세요"); }
+    if (!T || T.sid !== mySid) { busy = false; return; }
+    if (r.empty) { myB.remove(); toast("잘 안 들렸어요 — 한 번 더!"); busy = false; resumeInput(); return; }
+    if (r.err) { myB.remove(); sysBubble("서버 오류: " + r.err); busy = false; resumeInput("다시 말해 보세요"); return; }
+    myB.innerHTML = '<div class="who">나</div>' + esc(r.text || "…");
+    T.hist.push({ u: 1, t: r.text || "" });
+    T.silences = 0;
+    await deliver(r, mySid);
+  } catch(e){
+    stopWait(); myB.remove();
+    if (!T || T.sid !== mySid) { busy = false; return; }
+    sysBubble(e.message + " — 다시 말해 보세요");
+    busy = false; resumeInput("다시 말해 보세요");
+  }
 }
 function typeInstead(){
-  if (busy || recording || !T) return;
+  if (busy || !T) return;
+  if (recording) micCleanup();
   const t = prompt("영어로 입력해 보세요:");
   if (t && t.trim()) sendTurn(t.trim(), true);
+  else if (handsFree) vadStart();
 }
 
 let silenceTm = null;
 /* 오류가 나도 화면이 '생각하는 중'에 굳지 않게 — 모든 회복 경로가 이걸 쓴다 */
-function resetTurn(msg){
-  busy = false;
-  setMic("idle");
-  stopMouth();
-  stageStatus(msg || "당신 차례예요! 🎤");
-}
 function sysBubble(text){
   const d = document.createElement("div");
   d.className = "bb them thinking";
@@ -942,6 +1044,7 @@ function stopWait(){ clearInterval(waitTm); waitTm = null; }
 
 async function sendTurn(text, isUser){
   if (busy || !T) return;
+  if (recording) micCleanup();
   const mySid = T.sid;
   busy = true; setMic("wait");
   clearTimeout(silenceTm);
@@ -954,32 +1057,46 @@ async function sendTurn(text, isUser){
       mode: T.mode, persona: T.persona, sid: T.sid,
       history: T.hist, userText: isUser ? text : "",
       avoid: T.avoid.slice(-10)
-    });
+    }, 90000);
     think.remove(); stopWait();
     if (!T || T.sid !== mySid) { busy = false; return; }
-    if (r.err) { sysBubble("서버 오류: " + r.err); resetTurn("다시 눌러서 말해 보세요"); return; }
-    if (r.popup && r.popup.orig) showPop(r.popup);
-    const lines = r.lines || [];
-    lines.forEach(function(L){
-      T.hist.push({ s: L.speaker, t: L.text });
-      bubble(L.speaker, L.text, false);
-    });
-    busy = false; setMic("idle");
-    if (!lines.length) { resetTurn("다시 눌러서 말해 보세요"); return; }
-    for (const L of lines) {
-      if (!T || T.sid !== mySid) return;
-      await speakLine(L);
-    }
-    if (T && T.sid === mySid) { stageStatus("당신 차례예요! 🎤"); armSilence(); }
+    if (r.err) { sysBubble("서버 오류: " + r.err); busy = false; resumeInput("다시 말해 보세요"); return; }
+    await deliver(r, mySid);
   } catch(e){
     think.remove(); stopWait();
     if (!T || T.sid !== mySid) { busy = false; return; }
     sysBubble(e.message + " — 다시 말해 보세요");
-    resetTurn("다시 눌러서 말해 보세요");
+    busy = false; resumeInput("다시 말해 보세요");
   }
+}
+/* 대답 도착 → 팝업·말풍선·소리·다음 입력까지 (voice/chat 공용) */
+async function deliver(r, mySid){
+  if (r.popup && r.popup.orig) showPop(r.popup);
+  const lines = r.lines || [];
+  lines.forEach(function(L){
+    T.hist.push({ s: L.speaker, t: L.text });
+    bubble(L.speaker, L.text, false);
+  });
+  busy = false; setMic("idle");
+  if (!lines.length) { resumeInput("다시 말해 보세요"); return; }
+  for (const L of lines) {
+    if (!T || T.sid !== mySid) return;
+    await speakLine(L);
+  }
+  if (T && T.sid === mySid) resumeInput();
+}
+/* AI가 말을 마쳤다 — 이제 그녀 차례. 자동 모드면 바로 듣기 시작 */
+function resumeInput(msg){
+  if (!T) return;
+  stopMouth();
+  if (handsFree) { vadStart(); return; }
+  setMic("idle");
+  stageStatus(msg || "당신 차례예요! 🎤");
+  armSilence();
 }
 function armSilence(){
   clearTimeout(silenceTm);
+  if (handsFree) return;   /* 자동 모드에서는 듣기 자체가 침묵을 감지함 */
   if (T && T.mode === "group" && T.silences < 2) {
     silenceTm = setTimeout(function(){
       if (!recording && !busy && T) { T.silences++; sendTurn("[SILENT]", false); }
