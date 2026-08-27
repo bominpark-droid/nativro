@@ -118,19 +118,10 @@ input:focus{outline:none; border-color:var(--orange)}
 #talkctrl{padding-top:8px}
 #meter{display:none; justify-content:center; align-items:flex-end; gap:5px; height:34px; margin-bottom:8px}
 #meter i{width:7px; height:6px; border-radius:99px; background:var(--orange); transition:height .09s}
-#micbtn{
-  width:100%; border:none; border-radius:20px; padding:19px; font-size:18px; font-weight:800;
-  font-family:inherit; color:#fff; cursor:pointer;
-  background:linear-gradient(180deg,var(--orange),var(--orangeDk));
-  box-shadow:0 10px 22px -8px rgba(223,110,30,.6);
-}
-#micbtn.rec{background:linear-gradient(180deg,#EE6A55,#D74B36); animation:pulse 1.1s infinite}
-#micbtn.listen{background:linear-gradient(180deg,#58B368,#3E9A50)}
-#hfrow{display:flex; justify-content:center; margin-bottom:8px}
-#hfbtn{border:1.5px solid var(--line); background:var(--card); color:var(--soft); font-family:inherit;
- font-size:12.5px; font-weight:700; padding:7px 14px; border-radius:99px; cursor:pointer}
-#hfbtn.on{background:#EAF6EC; border-color:#58B368; color:#2F7A40}
-#micbtn.wait{background:#D9CDBD; color:#8A7B70; box-shadow:none}
+/* 마이크 상태는 캐릭터 테두리 색으로: 초록=듣는 중, 빨강=말 담는 중 */
+#stage{cursor:pointer}
+#stage[data-mic="listen"] .actor .avring{box-shadow:0 0 0 4px #58B368, var(--sh)}
+#stage[data-mic="rec"] .actor .avring{box-shadow:0 0 0 4px var(--red), var(--sh); animation:pulse 1.1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}}
 .talkfoot{display:flex; justify-content:space-between; margin-top:9px; font-size:13.5px; color:var(--soft)}
 .talkfoot span{cursor:pointer; padding:4px}
@@ -230,15 +221,14 @@ input:focus{outline:none; border-color:var(--orange)}
     <b class="grow center" id="t-title"></b>
     <span class="linkish" onclick="askEnd()">끝 ✅</span>
   </div>
-  <div id="stage"></div>
+  <div id="stage" onclick="stageTap()"></div>
   <div id="chatbox"></div>
   <div id="pops"></div>
   <div id="talkctrl">
-    <div id="hfrow"><button id="hfbtn" onclick="toggleHF()"></button></div>
     <div id="meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <button id="micbtn" onclick="micTap()">🎤 눌러서 말하기</button>
     <div class="talkfoot">
       <span onclick="typeInstead()">⌨️ 타자로</span>
+      <span class="sub" style="font-size:12px">👆 캐릭터를 누르면 바로 보내요</span>
       <span id="t-status"></span>
       <span onclick="askEnd()">다 했어요 ✅</span>
     </div>
@@ -715,7 +705,7 @@ async function speakLine(L){
   startMouth(who, L.emotion);
   const clips = (L.audios && L.audios.length) ? L.audios : (L.audio ? [L.audio] : []);
   for (const c of clips) {
-    if (!T) break;
+    if (!T || T.skip) break;
     await playB64(c, RATE[who] || 1);
   }
   stopMouth();
@@ -730,7 +720,7 @@ function releaseWake(){ try { if (wakeLock) { wakeLock.release(); wakeLock = nul
 document.addEventListener("visibilitychange", function(){
   if (document.visibilityState === "visible") {
     if (T) keepAwake();
-    if (T && handsFree && !busy && !recording) vadStart();
+    if (T && !busy && !recording) vadStart();
   } else if (recording) { micCleanup(); setMic("idle"); }
 });
 
@@ -739,20 +729,6 @@ let AC = null, mediaStream = null, srcNode = null, procNode = null, zeroGain = n
 let recBuf = [], recording = false, recTimer = null, recStart = 0;
 let meterVal = 0, meterTm = null;
 let vad = null;                                   /* 말 시작/끝 자동 감지 상태 */
-let handsFree = true;                             /* 그냥 말하기 모드 */
-try { handsFree = localStorage.getItem("nativro-hf") !== "0"; } catch(e){}
-function hfPaint(){
-  const b = $("hfbtn"); if (!b) return;
-  b.className = handsFree ? "on" : "";
-  b.textContent = handsFree ? "🙌 그냥 말하면 돼요 · 누르면 버튼 방식" : "✋ 버튼 눌러 말하기 · 누르면 자동으로";
-}
-function toggleHF(){
-  handsFree = !handsFree;
-  try { localStorage.setItem("nativro-hf", handsFree ? "1" : "0"); } catch(e){}
-  hfPaint();
-  if (!handsFree && recording && vad) { micCleanup(); setMic("idle"); stageStatus("당신 차례예요! 🎤"); }
-  if (handsFree && T && !busy && !recording) vadStart();
-}
 
 function startMeter(){
   $("meter").style.display = "flex";
@@ -835,7 +811,7 @@ function vadStep(rms){
     }
     if (idle > 60000) {                              /* 1분간 말 없으면 쉬어서 배터리 아낌 */
       micCleanup(); setMic("idle");
-      stageStatus("쉬는 중 — 🎤 누르면 다시 들어요");
+      stageStatus("쉬는 중 — 캐릭터를 누르면 다시 시작 👆");
     }
     return;
   }
@@ -847,7 +823,7 @@ function vadStep(rms){
 async function vadStart(){
   if (!T || busy || recording) return;
   try { await recBegin(true); }
-  catch(e){ toast("마이크를 허용해 주세요"); setMic("idle"); stageStatus("🎤 눌러서 말하기"); }
+  catch(e){ toast("마이크를 허용해 주세요"); setMic("idle"); stageStatus("마이크 허용 후 캐릭터를 눌러 주세요 👆"); }
 }
 function micCleanup(){
   recording = false;
@@ -948,7 +924,6 @@ async function startTalk(mode, persona){
   $("pops").innerHTML = "";
   renderStage();
   setMic("idle");
-  hfPaint();
   show("talk");
   await sendTurn("[SESSION_START]", false);
 }
@@ -961,20 +936,19 @@ function bubble(who, text, me, thinking){
   return d;
 }
 function setMic(state){
-  const b = $("micbtn");
-  b.className = "";
-  if (state === "rec") { b.classList.add("rec"); b.textContent = "⏹ 말 끝났어요"; }
-  else if (state === "listen") { b.classList.add("listen"); b.textContent = "👂 듣는 중 — 누르면 바로 보내기"; }
-  else if (state === "wait") { b.classList.add("wait"); b.textContent = "생각하는 중..."; }
-  else b.textContent = "🎤 눌러서 말하기";
+  const st = $("stage");
+  if (st) st.dataset.mic = state || "idle";
 }
-async function micTap(){
+/* 캐릭터 탭 = "내 차례" — 말 담는 중이면 바로 보내기, AI가 말하면 끊고 듣기, 쉬면 깨우기 */
+function stageTap(){
+  if (!T) return;
   unlockAudio();
   clearTimeout(silenceTm);
-  if (recording) { await finishSpeak(); return; }   /* 듣는 중이면 = 지금 보내기 */
-  if (busy) return;
-  try { await recBegin(false); }
-  catch(e){ toast("마이크를 허용해 주세요"); }
+  if (busy) return;                                  /* 생각하는 중엔 기다림 */
+  if (recording) { if (vad && vad.started) finishSpeak(); return; }
+  T.skip = true;                                     /* 남은 AI 대사는 건너뜀 */
+  stopAudio(); stopMouth();
+  vadStart();
 }
 /* 말이 끝났을 때 (자동이든 버튼이든) — 받아쓰기+대답을 한 번에 요청 */
 async function finishSpeak(){
@@ -1018,7 +992,7 @@ function typeInstead(){
   if (recording) micCleanup();
   const t = prompt("영어로 입력해 보세요:");
   if (t && t.trim()) sendTurn(t.trim(), true);
-  else if (handsFree) vadStart();
+  else vadStart();
 }
 
 let silenceTm = null;
@@ -1081,27 +1055,17 @@ async function deliver(r, mySid){
   if (!lines.length) { resumeInput("다시 말해 보세요"); return; }
   for (const L of lines) {
     if (!T || T.sid !== mySid) return;
+    if (T.skip) break;
     await speakLine(L);
   }
+  if (T) T.skip = false;
   if (T && T.sid === mySid) resumeInput();
 }
-/* AI가 말을 마쳤다 — 이제 그녀 차례. 자동 모드면 바로 듣기 시작 */
-function resumeInput(msg){
+/* AI가 말을 마쳤다 — 바로 그녀 차례: 자동으로 듣기 시작 */
+function resumeInput(){
   if (!T) return;
   stopMouth();
-  if (handsFree) { vadStart(); return; }
-  setMic("idle");
-  stageStatus(msg || "당신 차례예요! 🎤");
-  armSilence();
-}
-function armSilence(){
-  clearTimeout(silenceTm);
-  if (handsFree) return;   /* 자동 모드에서는 듣기 자체가 침묵을 감지함 */
-  if (T && T.mode === "group" && T.silences < 2) {
-    silenceTm = setTimeout(function(){
-      if (!recording && !busy && T) { T.silences++; sendTurn("[SILENT]", false); }
-    }, 8000);
-  }
+  vadStart();
 }
 
 /* ============ 팝업 카드 ============ */
@@ -1152,7 +1116,7 @@ function askEnd(){
   const spoke = T && T.hist.filter(function(h){ return h.u && h.t !== "[SESSION_START]" && h.t !== "[SILENT]"; }).length > 0;
   if (!spoke) { leaveTalk(); T = null; goHome(); return; }
   if (confirm("오늘 대화를 끝내고 정리를 볼까요?")) { leaveTalk(); finishTalk(); }
-  else armSilence();
+  else resumeInput();
 }
 async function finishTalk(){
   show("sum");
